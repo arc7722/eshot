@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="initial-scale=1, width=device-width" name="viewport"/>
+
+        <!-- documentation at http://getbootstrap.com/, alternative themes at https://www.bootstrapcdn.com/bootswatch/ -->
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+        <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="{{ url_for('index') }}">Skillsgen</a>
+                </div>
+                <ul class="nav navbar-nav">
+                    {% if session.user_id != null %}
+                        <li><a href="{{ url_for('index') }}">Eshot</a></li>                    
+                    {% endif %}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                {% if session.user_id %}
+                    <li>        
+                        <a href="{{ url_for('logout') }}">Log out</a>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{{ url_for('login') }}"> Log in</a>
+                    </li>
+                {% endif %}
+                </ul>
+            </div>
+        </nav>
+    </head>
+    <body>
+        <div class="container">
+            <main>
+                {% block main %}{% endblock %}
+            </main>
+        </div>
+    </body>
+</html>
