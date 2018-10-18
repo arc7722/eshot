@@ -1,3 +1,4 @@
+/__pycache__
 /eshot
 .DS_Store
 run-redis.sh
