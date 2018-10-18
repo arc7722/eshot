@@ -5,6 +5,7 @@ from functools import wraps
 from tempfile import gettempdir
 from urllib.parse import urlparse
 from flask_mail import Mail, Message
+from celery import Celery
 import json
 import passlib.pwd as pwd
 import sqlalchemy
@@ -13,12 +14,16 @@ import psycopg2
 
 app = Flask(__name__)
 
-mail = Mail(app)
-
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER")
 app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
 app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 mail = Mail(app)
+
+app.config['CELERY_BROKER_URL'] = os.environ.get("REDIS_URL")
+app.config['CELERY_RESULT_BACKEND'] = os.environ.get("REDIS_URL")
+
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery.conf.update(app.config)
 
 url = urlparse(os.environ["DATABASE_URL"])
 conn = psycopg2.connect(
@@ -118,6 +123,11 @@ def aux_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@celery.task
+def background_task(arg1, arg2):
+    print("running background task")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login(message=""):
     if request.method == "POST":
@@ -193,6 +203,7 @@ def index(message=""):
             
             return jsonify(newclientid)
     else:
+        task = background_task.delay(1,2)
         return render_template("eshot.html")
 
     
