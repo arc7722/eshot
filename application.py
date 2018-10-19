@@ -229,13 +229,7 @@ def search():
             coursedict = dict()
             coursedict["id"] = course["id"]
             coursedict["name"] = course["name"]
-            coursedict["dates"] = list()
-                        
-            dates = db.execute("SELECT date FROM bookings WHERE course = :course_id AND CAST(date as DATE) < CURRENT_DATE",
-                               course_id = course["id"])
-            
-            for date in dates:
-                coursedict["dates"].append(date["date"])
+            coursedict["bookings"] = db.execute("SELECT id, date FROM bookings WHERE course = :course_id AND CAST(date as DATE) < CURRENT_DATE", course_id = course["id"])
             
             results.append(coursedict)
         
