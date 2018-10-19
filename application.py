@@ -146,6 +146,13 @@ def login(message=""):
     else:
         return render_template("login.html")
 
+@app.route("/logout")
+def logout():
+    
+    session.clear()
+
+    return redirect(url_for("login"))
+
 
 @app.route("/", methods = ['GET','POST'])
 @aux_login_required
@@ -204,15 +211,37 @@ def index(message=""):
             return jsonify(newclientid)
     else:
         task = background_task.delay(1,2)
-        return render_template("eshot.html")
+        return render_template("index.html")
 
+@app.route("/eshot")
+def eshot():
+    return render_template("eshot.html")
     
-@app.route("/logout")
-def logout():
+@app.route("/search", methods=["POST"])
+def search():
+    if request.method == "POST":
+        q = request.form.get("term")
+        q = "%%" + q + "%%"
+        courses = db.execute("SELECT id, name FROM courses WHERE (name ILIKE :q)", q=q)
+        
+        results = list()
+        for course in courses:
+            coursedict = dict()
+            coursedict["id"] = course["id"]
+            coursedict["name"] = course["name"]
+            coursedict["dates"] = list()
+                        
+            dates = db.execute("SELECT date FROM bookings WHERE course = :course_id AND CAST(date as DATE) < CURRENT_DATE",
+                               course_id = course["id"])
+            
+            for date in dates:
+                coursedict["dates"].append(date["date"])
+            
+            results.append(coursedict)
+        
+        return jsonify(results)
     
-    session.clear()
-
-    return redirect(url_for("login"))
+    
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

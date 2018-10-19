@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<style>        
+    #searchpanel
+    {
+        background-color: darkgrey;        
+        border-style: solid;
+        border-color: black;
+        border-width: 1px;
+    }
+    
+    #contentheader
+    {
+        background-color: darkgray;
+        height: 42px;
+        border-style: solid;
+        border-color: black;
+        border-width: 1px;
+    }
+    
+    #indexpanel 
+    {        
+        background-color: lightslategray;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        height: 85vh;
+        padding-top: 0px;
+        padding-left: 0px;
+        padding-right: 11px;
+        border-left-style: solid;
+        border-bottom-style: solid;
+        border-right-style: solid;
+        border-color: black;
+        border-width: 1px;
+    }
+    
+    .consentdiv
+    {
+        margin-right: 2px;
+        text-align: right;
+        font-size: 18px;
+    }
+    
+    .clientbox
+    {
+        background-color: antiquewhite;
+        border-color: lightgray;
+        border-style: outset;
+        
+    }
+    
+    #contentpanel 
+    {     
+        height: 85vh;
+        background-color: lightgray;
+        border-left-style: solid;
+        border-right-style: solid;
+        border-bottom-style: solid;
+        border-color: black;
+        border-width: 1px;
+    }
+    
+    .formlabel
+    {
+        padding-top: 10px;
+    }
+</style>
+
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="initial-scale=1, width=device-width" name="viewport"/>
+
+        <!-- documentation at http://getbootstrap.com/, alternative themes at https://www.bootstrapcdn.com/bootswatch/ -->
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+        <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="{{ url_for('index') }}">Skillsgen</a>
+                </div>
+                <ul class="nav navbar-nav">
+                    {% if session.user_id != null %}
+                        <li><a href="{{ url_for('index') }}">List</a></li>
+                        <li><a href="{{ url_for('eshot') }}">eshot</a></li>
+                    {% endif %}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                {% if session.user_id %}
+                    <li>        
+                        <a href="{{ url_for('logout') }}">Log out</a>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{{ url_for('login') }}"> Log in</a>
+                    </li>
+                {% endif %}
+                </ul>
+            </div>
+        </nav>
+    </head>
+    <body>
+        <div class="container">
+            <main>
+                <div class="row">
+                    <div class="col-xs-7" id="searchpanel">
+                        <div class="row" style="padding-right: 0px;">
+                            <div class="col-xs-7" style="padding-right: 0px;">
+                                <input id="searchbox" class="form-control" type="text" placeholder="Search"/>
+                            </div>
+                            <div class="col-xs-5">
+                                <button id="searchbutton" class="btn btn-primary" onclick="searchclients()">Search</button>
+                                <button id="clearbutton" class="btn btn-secondary" onclick="clearsearch()">Clear</button>
+                                <div class="checkbox pull-right">
+                                    <label><input id="flagtoggle" type="checkbox" name="flagtoggle" onclick="searchclients()">Flagged</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-5" id="contentheader">
+                        <div class="row">
+                            <div class="col-xs-4">
+                                <h4 style="margin-top: 6px">Client Details</h4>
+                            </div>
+                            <div class="col-xs-8">
+                                <button id="newbutton" class="btn btn-primary" onclick="newclient()">New</button>
+                                <button id="savebutton" class="btn btn-success" onclick="saveclient()">Save</button>
+                                <button id="cancelbutton" class="btn btn-secondary" onclick="cancel()">Cancel</button>
+                                <button id="deletebutton" class="btn btn-danger" onclick="deleteclient()">Delete</button>
+                            </div>
+                        </div>
+                    </div>       
+                </div>
+                <div class="row">
+                    <div class="col-xs-7" id="indexpanel">  
+                        
+                    </div>                
+                    <div class="col-xs-5" id="contentpanel">
+                        <label for="client" class="formlabel">Name of Company</label>
+                        <input id="client" class="form-control" type="text" placeholder="Client"/>
+                        
+                        <label for="contact" class="formlabel">Name of Contact</label>
+                        <input id="contact" class="form-control" type="text" placeholder="Contact"/>
+                        
+                        <label for="email" class="formlabel">Email</label>
+                        <input id="email" class="form-control" type="text" placeholder="Email"/>
+                        
+                        <label for="phone" class="formlabel">Phone Number</label>
+                        <input id="phone" class="form-control" type="text" placeholder="Phone"/>
+                        
+                        <label for="notes" class="formlabel">Notes:</label>
+                        <textarea rows="15" id="notes" type="text" class="form-control" name="notes" placeholder="Notes"></textarea>
+                    </div>   
+                </div>
+            </main>
+        </div>
+    </body>
+</html>
+
+<script>
+    var clientarray = [];
+    var clientidindex = [];
+    var selectedclient = null;
+    var lastselectedclient = null;
+    
+    function postrequest(params, search) {
+        var queryurl = "{{url_for('index')}}";
+        
+        xmlhttp=new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function() {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+
+                var postresults = JSON.parse(xmlhttp.responseText);
+                if(search) {
+                    clientarray = [];
+                    clientidindex = [];
+                    
+                    if (postresults.length == 0) {
+                        if(document.getElementById('flagtoggle').checked) {
+                            document.getElementById('indexpanel').innerHTML = "<h4 style='text-align:center;color:white'>Sorry, no flagged entries that match your search term could be found.</h4>";    
+                        } else {
+                            document.getElementById('indexpanel').innerHTML = "<h4 style='text-align:center;color:white'>Sorry, no entries that match your search term could be found.</h4>";
+                        }
+                        selectclient(null);
+                        resetclientdetails();
+                        return;
+                    }                
+                    
+                    for (var key in postresults) {
+                        if (!postresults.hasOwnProperty(key)) continue;
+                        var obj = postresults[key];
+
+                        clientidindex.push(obj['id']);
+                        clientarray.push({id: obj['id'], 
+                                          business: obj['business'],
+                                          contact: obj['contact'],
+                                          email: obj['email'],
+                                          phone: obj['phone'],
+                                          consent: obj['consent'],
+                                          notes: obj['notes'],
+                                          flag: obj['flag']}); 
+                    }
+                    populateindexpanel();
+                    if(selectedclient != null && clientarray[selectedclient] != null) {
+                        selectclient(selectedclient);
+                    } else {
+                        lastselectedclient = null;
+                        selectclient(null);
+                        resetclientdetails();
+                    }
+                }
+            }
+        }
+        xmlhttp.open("POST", queryurl);
+        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlhttp.send(params);
+    }
+    
+    function populateindexpanel()
+    {
+        indexpanelhtml = "";
+        for(var i = 0; i < clientidindex.length; i++) {
+            var client = clientarray[i];
+            indexpanelhtml += "<div class='clientbox' id='clientbox" + i + "'";
+            indexpanelhtml += "onclick='selectclient(" + i + ")'";
+            if(!client['consent']) {
+                indexpanelhtml += "style='color: darkgrey; background-color: lightgrey'>";
+            } else {
+                indexpanelhtml += ">"
+            }
+            indexpanelhtml += "<div class='row'><div class='col-xs-11'><div class='row'>";
+            indexpanelhtml += "<div class='col-xs-6'><b>" + client['business'] + "</b></div>";
+            if(client['phone'] == "") {
+                indexpanelhtml += "<div class='col-xs-6'><i>Phone not supplied</i></div>";
+            } else {
+                indexpanelhtml += "<div class='col-xs-6'>" + client['phone'] + "</div>";
+            }
+            indexpanelhtml += "<div class='col-xs-6'>" + client['contact'] + "</div>";
+            if(client['email'] == "") {
+                indexpanelhtml += "<div class='col-xs-6'><i>Email not supplied</i></div>";
+            } else {
+                indexpanelhtml += "<div class='col-xs-6'>" + client['email'] + "</div>";
+            }            
+            indexpanelhtml += "</div></div><div class='col-xs-1'><div class='consentdiv'>";            
+            if(client['flag']) {
+                indexpanelhtml += "<span id='flag" + i + "' onclick='flag(" + i + ")' "; 
+                indexpanelhtml += "style='color: red'class='glyphicon glyphicon-flag' aria-hidden='true'></span>";
+            } else {
+                indexpanelhtml += "<span id='flag" + i + "' onclick='flag(" + i + ")' ";
+                indexpanelhtml += "style='color: lightgrey'class='glyphicon glyphicon-flag' aria-hidden='true'></span>";
+            }
+            if(!client['consent']) {
+                indexpanelhtml += "<span id='consent' style='color: red'class='glyphicon glyphicon-remove' aria-hidden='true'></span>";
+            }
+            indexpanelhtml += "</div></div></div></div>";
+        }
+        document.getElementById('indexpanel').innerHTML = indexpanelhtml;
+    }
+    
+    function selectclient(clientindex) {
+        if(lastselectedclient != null) {
+            var lastselected = "clientbox" + lastselectedclient;
+            document.getElementById(lastselected).style.borderStyle = "outset";
+            if(clientarray[lastselectedclient]['consent']) {
+                document.getElementById(lastselected).style.backgroundColor = "antiquewhite";
+            } else {
+                document.getElementById(lastselected).style.backgroundColor = "lightgrey";
+            }
+            lastselectedclient = null;
+        }
+        if(clientindex == null) {
+            selectedclient = null
+            return;    
+        }
+        selectedclient = clientindex;
+        var selectedclientbox = "clientbox" + clientindex;
+        
+        document.getElementById(selectedclientbox).style.borderStyle = "inset";
+        document.getElementById(selectedclientbox).style.backgroundColor = "lightblue";
+
+        document.getElementById('client').value = clientarray[clientindex]['business'];
+        document.getElementById('contact').value = clientarray[clientindex]['contact'];
+        document.getElementById('email').value = clientarray[clientindex]['email'];
+        document.getElementById('phone').value = clientarray[clientindex]['phone'];
+        document.getElementById('notes').value = clientarray[clientindex]['notes']; 
+
+        lastselectedclient = selectedclient;
+        document.getElementById('newbutton').disabled = false;        
+    }
+    
+    function flag(clientindex) {
+        var clickedflag = "flag" + clientindex;
+        var term = clientarray[clientindex]['id'];
+        var params = "flag=" + term;
+        
+        postrequest(params, false);
+        
+        if(document.getElementById(clickedflag).style.color == "lightgrey") {
+            document.getElementById(clickedflag).style.color = "red";
+        } else {
+            document.getElementById(clickedflag).style.color = "lightgrey";
+        }
+    }
+    
+    function refreshclientlist() {
+        var params = "search=";
+        if(document.getElementById('flagtoggle').checked) {
+            params += "&onlyflagged=1";
+        } else {
+            params += "&onlyflagged=0";
+        }
+        postrequest(params, true);
+    }
+    
+    function searchclients(selected) {
+        var term = document.getElementById('searchbox').value;
+        var params = "search=" + term;
+        
+        if(document.getElementById('flagtoggle').checked) {
+            params += "&onlyflagged=1";
+        } else {
+            params += "&onlyflagged=0";
+        }
+        selectclient(selected);
+        
+        postrequest(params, true);
+        document.getElementById('newbutton').disabled = false;
+    }
+    
+    function clearsearch(selected) {
+        document.getElementById('searchbox').value = null;
+        document.getElementById('flagtoggle').checked = false;
+        refreshclientlist();
+        selectedclient = selected;
+    }
+    
+    function saveclient() { // try saving multiple times, error?
+        var params = "";
+        if(selectedclient != null) {                    
+            params = "clientid=" + clientarray[selectedclient]['id'];                     
+        }
+        params += "&client=" + document.getElementById('client').value +
+                  "&contact=" + document.getElementById('contact').value +
+                  "&email=" + document.getElementById('email').value +
+                  "&phone=" + document.getElementById('phone').value +
+                  "&notes=" + document.getElementById('notes').value;
+        postrequest(params, false);
+        
+        if(selectedclient == null) {            
+            lastselectedclient = null;
+            clearsearch(0);
+            return;
+        }
+        searchclients(selectedclient);
+        document.getElementById('newbutton').disabled = false;
+    }
+    
+    function deleteclient() {
+        if(selectedclient != null) {
+            var r = confirm("Are you sure you wish to delete this?");
+            if(r == false) {
+                return;
+            }
+
+            var params = "delete=1&clientid=" + clientarray[selectedclient]['id'];
+        
+            postrequest(params, false);
+            cancel();
+            refreshclientlist()
+        }
+    }
+    
+    function cancel() {
+        newclient();
+        document.getElementById('newbutton').disabled = false;
+    }
+    
+    function newclient() {
+        document.getElementById('newbutton').disabled = true;
+        selectclient(null);        
+        document.getElementById('flagtoggle').checked = false;
+        clearsearch();
+    }
+    
+    function resetclientdetails() {
+        document.getElementById('client').value = null;
+        document.getElementById('contact').value = null;
+        document.getElementById('email').value = null;
+        document.getElementById('phone').value = null;
+        document.getElementById('notes').value = null; 
+    }
+    
+    document.getElementById('searchbox').value = null;
+    newclient();
+</script>
