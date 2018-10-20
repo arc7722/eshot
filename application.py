@@ -220,21 +220,24 @@ def eshot():
 @app.route("/search", methods=["POST"])
 def search():
     if request.method == "POST":
-        q = request.form.get("term")
-        q = "%%" + q + "%%"
-        courses = db.execute("SELECT id, name FROM courses WHERE (name ILIKE :q)", q=q)
+        if request.form.get("term"):
+            q = request.form.get("term")
+            q = "%%" + q + "%%"
+            courses = db.execute("SELECT id, name FROM courses WHERE (name ILIKE :q)", q=q)
         
-        results = list()
-        for course in courses:
-            coursedict = dict()
-            coursedict["id"] = course["id"]
-            coursedict["name"] = course["name"]
-            coursedict["bookings"] = db.execute("SELECT id, date FROM bookings WHERE course = :course_id AND CAST(date as DATE) < CURRENT_DATE", course_id = course["id"])
+            return jsonify(courses)
+        
+        elif request.form.get("course_id"):
+            courseid = request.form.get("course_id")
+            dates = db.execute("SELECT id, date FROM bookings WHERE course = :courseid", courseid = courseid)
             
-            results.append(coursedict)
+            return jsonify(dates)    
         
-        return jsonify(results)
+        else:
+            return("something went wrong")
     
+    else: 
+        return("you shouldn't be here")
     
 
 if __name__ == '__main__':
