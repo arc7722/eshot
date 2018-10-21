@@ -47,7 +47,40 @@
     </div>
 </div>
 <script>
+    var eshot_courses = [];
+    var eshot_courses_count = 0;
+    var date_count = 0;    
+    
+    var course_to_add = 0;
+    function select_course(li, id) {
+        course_to_add = id;
+        
+        for(i = 0; i < date_count; i++) {
+            var element = "date" + i;
+            document.getElementById(element).style.backgroundColor = "white";
+        }
+            
+        element = "date" + li;        
+        document.getElementById(element).style.backgroundColor = "lightblue";
+        
+    }
+    
+    function add_course() {
+        if(course_to_add != 0 && document.getElementById('price_box').value != "") {
+            var course = {id: course_to_add, price: document.getElementById('price_box').value};
+            
+            eshot_courses[eshot_courses_count] = course;
+            eshot_courses_count++;      
+            
+            date_count = 0;
+            course_to_add = 0;
+            document.getElementById('searched_courses').innerHTML = "<br><p style='text-align: center'>Course added to Eshot</p>";
+        }
+    }
+    
     function search_course() {
+        course_to_add = 0;
+        date_count = 0;
         var queryurl = "{{url_for('search')}}";
         var term = document.getElementById('search_box').value;
         if(term.length < 3) {
@@ -108,38 +141,30 @@
                     return;
                 }                
                 
-                course_dates_html += "<div class='panel panel-default'><div class='panel-heading'><h3 class='panel-title'>";
+                course_dates_html += "<div class='panel panel-default'><div class='panel-heading'><div class='row'><div class='col-xs-8'><h3 class='panel-title'>";
                 course_dates_html += course_name;
-                course_dates_html += "</h3></div>";
-                course_dates_html += "<div class='panel-body'>";
+                course_dates_html += "</h3></div><div class='col-xs-4'><input id='price_box' class='form-control' type='text' placeholder='Price'/></div></div></div>";
+                course_dates_html += "<ul class='list-group'>";
                 
                 var counter = 0;
                 for(var key in postresults) {
                     if (!postresults.hasOwnProperty(key)) continue;
                     var obj = postresults[key];
                     
-                    if(counter % 2 == 0) {
-                        course_dates_html += "<div class='row'>";
-                    }
-                    course_dates_html += "<div class='col-lg-6'><div class='input-group'><span class='input-group-addon'><input type='checkbox' aria-label='...";
+                    course_dates_html += "<li id='date";
+                    course_dates_html += counter;
+                    course_dates_html += "' onclick='select_course(";
+                    course_dates_html += counter + "," + obj['id'];
+                    course_dates_html += ")' class='list-group-item'>";
                     course_dates_html += obj['date'];
-                    course_dates_html += "'></span><li class='list-group-item'>";
-                    course_dates_html += obj['date'];
-                    course_dates_html += "</li></div></div>";
-                    
-                    if(counter % 2 == 1 ) {
-                        course_dates_html += "</div>";
-                    }
+                    course_dates_html += "</li>";    
                     
                     counter++;
                 }
+                date_count = counter;
                 
-                if(counter % 2 == 1 ) {
-                    course_dates_html += "</div>";
-                }
-                
-                course_dates_html += "</div></div>";
-                course_dates_html += "<div class'container' style='text-align: center'><button type='button' class='btn btn-primary'>Add dates to Eshot</button></div>";
+                course_dates_html += "</ul></div>";
+                course_dates_html += "<div class'container' style='text-align: center'><button onclick='add_course()' type='button' class='btn btn-primary'>Add date to Eshot</button></div>";
                 document.getElementById('searched_courses').innerHTML = course_dates_html;
               }
         }
