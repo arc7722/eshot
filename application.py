@@ -220,7 +220,30 @@ def eshot():
 @app.route("/search", methods=["POST"])
 def search():
     if request.method == "POST":
-        if request.form.get("term"):
+        if request.form.get("count"):
+            count = request.form.get("count")
+            
+            eshot = []
+            for i in range(int(count)):
+                booking_id_term = "id" + str(i)
+                price_term      = "price" + str(i)
+                booking_id = request.form.get(booking_id_term)                
+                price      = request.form.get(price_term)
+                
+                course = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+                
+                eshot_course = {"booking_id":    booking_id,
+                                "booking_date":  course[0]['date'],
+                                "course_id":     course[0]['course'],
+                                "course_type":   course[0]['type'],
+                                "course_name":   course[0]['name'],
+                                "course_desc":   course[0]['description'],
+                                "booking_price": price}
+                eshot.append(eshot_course)
+            
+            return jsonify(eshot)            
+            
+        elif request.form.get("term"):
             q = request.form.get("term")
             q = "%%" + q + "%%"
             courses = db.execute("SELECT id, name FROM courses WHERE (name ILIKE :q)", q=q)
