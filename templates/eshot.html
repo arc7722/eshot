@@ -84,13 +84,52 @@
         }
     }
     
+    function move_up(eshot_course) {
+        if(eshot_course == 0) {
+            return;
+        }
+        var swapped_course = eshot_courses[eshot_course - 1];
+        eshot_courses[eshot_course - 1] = eshot_courses[eshot_course];
+        eshot_courses[eshot_course] = swapped_course;
+        
+        refresh_eshot();
+    }
+    
+    function move_down(eshot_course) {
+        if(eshot_course == (eshot_courses_count - 1)) {
+            return;
+        }
+        var swapped_course = eshot_courses[eshot_course + 1];
+        eshot_courses[eshot_course + 1] = eshot_courses[eshot_course];
+        eshot_courses[eshot_course] = swapped_course;
+        
+        refresh_eshot();
+    }
+    
+    function delete_course(eshot_course) {
+        console.log("delete");
+        eshot_courses.splice(eshot_course, 1);        
+        eshot_courses_count--;
+        
+        refresh_eshot();
+    }
+    
     function refresh_eshot() {
         var eshot_html = "";
         
+        if(eshot_courses_count == 0) {
+            eshot_html += "<p>No dates added yet</p>";
+        }
         for(i = 0; i < eshot_courses_count; i++) {
             eshot_html += "<div class='panel panel-default'><div class='panel-heading'><div class='row'><div class='col-xs-9'><h3 class='panel-title'>";
             eshot_html += eshot_courses[i].name;
-            eshot_html += "</h3></div><div class='col-xs-1' style='border-left-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-up' aria-hidden='true'></span></div><div class='col-xs-1' style='border-right-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-down' aria-hidden='true'></span></div><div class='col-xs-1'><span style='color:red' class='glyphicon glyphicon-remove' aria-hidden='true'></span></div></div></div><div class='panel-body'>";
+            eshot_html += "</h3></div><div onclick='move_up("
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1' style='border-left-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-up' aria-hidden='true'></span></div><div onclick='move_down(";
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1' style='border-right-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-down' aria-hidden='true'></span></div><div onclick='delete_course(";
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1'><span style='color:red' class='glyphicon glyphicon-remove' aria-hidden='true'></span></div></div></div><div class='panel-body'>";
             eshot_html += eshot_courses[i].desc;
             eshot_html += "</div><ul class='list-group'><li class='list-group-item'><b>";
             eshot_html += eshot_courses[i].date + " - £" + eshot_courses[i].price + " +VAT<a href='http://www.skillsgen.com/";
@@ -205,7 +244,7 @@
                 
                 if(postresults.length == 0) {
                     course_dates_html = "<p>No dates for that course found</p>";
-                    document.getElementById('searched_courses').innerHTML = searched_courses_html;
+                    document.getElementById('searched_courses').innerHTML = course_dates_html;
                     
                     return;
                 }                
