@@ -214,10 +214,12 @@ def index(message=""):
         return render_template("index.html")
 
 @app.route("/eshot")
+@aux_login_required
 def eshot():
     return render_template("eshot.html")
     
 @app.route("/search", methods=["POST"])
+@aux_login_required
 def search():
     if request.method == "POST":
         if request.form.get("count"):
@@ -262,7 +264,43 @@ def search():
     else: 
         return("you shouldn't be here")
     
-
+    
+@app.route("/save", methods=["POST"])
+@aux_login_required
+def save():
+    eshot = request.get_json()
+    courses = [0, 0, 0, 0, 0, 0, 0, 0]
+    prices  = [0, 0, 0, 0, 0, 0, 0, 0]
+    
+    length = 8
+    if len(eshot["eshot_courses"]) < 8:
+        length = len(eshot["eshot_courses"])
+        
+    for i in range(length):
+        courses[i] = eshot["eshot_courses"][i]["course"]
+        prices[i]  = eshot["eshot_courses"][i]["price"]
+        
+    id = db.execute("INSERT INTO eshots (subject, course0, price0, course1, price1, course2, price2, course3, price3, course4, price4, course5, price5, course6, price6, course7, price7) VALUES (:subject, :course0, :price0, :course1, :price1, :course2, :price2, :course3, :price3, :course4, :price4, :course5, :price5, :course6, :price6, :course7, :price7)", 
+                    subject = eshot["subject"],
+                    course0 = courses[0],
+                    price0  = prices[0],
+                    course1 = courses[1],
+                    price1  = prices[1],
+                    course2 = courses[2],
+                    price2  = prices[2],          #can you tell we pay for our database storage by row.
+                    course3 = courses[3],
+                    price3  = prices[3],
+                    course4 = courses[4],
+                    price4  = prices[4],
+                    course5 = courses[5],
+                    price5  = prices[5],
+                    course6 = courses[6],
+                    price6  = prices[6],
+                    course7 = courses[7],
+                    price7  = prices[7])
+    
+    return("ThumbsUp")
+    
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port,debug=True)
