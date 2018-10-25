@@ -213,10 +213,19 @@ def index(message=""):
         task = background_task.delay(1,2)
         return render_template("index.html")
 
-@app.route("/eshot")
+@app.route("/new_eshot")
 @aux_login_required
-def eshot():
-    return render_template("eshot.html")
+def new_eshot():
+    return render_template("new_eshot.html")
+     
+    
+@app.route("/eshots", methods=["GET", "POST"])
+@aux_login_required
+def eshots():
+    
+    eshots = db.execute("SELECT id, to_char(EXTRACT(day FROM timestamp), '99') as daynum, to_char(timestamp, 'Month') AS month, to_char(timestamp, 'yyyy') AS year, subject FROM eshots")
+    
+    return render_template("eshots.html", eshots = eshots)
     
 @app.route("/search", methods=["POST"])
 @aux_login_required
@@ -232,10 +241,13 @@ def search():
                 booking_id = request.form.get(booking_id_term)                
                 price      = request.form.get(price_term)
                 
-                course = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+                course = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
                 
                 eshot_course = {"booking_id":    booking_id,
                                 "booking_date":  course[0]['date'],
+                                "daynum":        course[0]['daynum'],
+                                "month":         course[0]['month'],
+                                "year":          course[0]['year'],
                                 "course_id":     course[0]['course'],
                                 "course_type":   course[0]['type'],
                                 "course_name":   course[0]['name'],
