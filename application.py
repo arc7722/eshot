@@ -210,7 +210,6 @@ def index(message=""):
             
             return jsonify(newclientid)
     else:
-        task = background_task.delay(1,2)
         return render_template("index.html")
 
 @app.route("/new_eshot")
@@ -218,6 +217,55 @@ def index(message=""):
 def new_eshot():
     return render_template("new_eshot.html")
      
+    
+@app.route("/send", methods=["GET", "POST"])
+@aux_login_required
+def send():
+    if request.method == "POST":
+        if request.form.get("list") == "test":
+            recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy@email.com"},
+                              {"id": 1, "contact": "dummy contact", "email": "dummy@email.com"}]
+        else:
+            recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1")
+        
+        return jsonify(recipient_list)
+            
+    elif request.args.get("eshotid") != None:
+        eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
+                          id = request.args.get("eshotid"))
+        
+        eshot = []
+        counter = 0
+        while True:
+            booking_term = "booking" + str(counter)
+            price_term  = "price" + str(counter)
+            booking_id = eshot_desc[0][booking_term]
+            price = eshot_desc[0][price_term]
+                
+            if booking_id == 0:
+                break
+                
+            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+                
+            eshot_booking = {"booking_id":    booking_id,
+                            "booking_date":  booking[0]['date'],
+                            "daynum":        booking[0]['daynum'],
+                            "month":         booking[0]['month'],
+                            "year":          booking[0]['year'],
+                            "course_id":     booking[0]['course'],
+                            "course_type":   booking[0]['type'],
+                            "course_name":   booking[0]['name'],
+                            "course_desc":   booking[0]['description'],                                
+                            "booking_price": price}
+            
+            eshot.append(eshot_booking)            
+            counter += 1
+            
+        return render_template("send.html", eshot = eshot)
+    
+    else:
+        return "eshot id not found"
+
     
 @app.route("/eshots", methods=["GET", "POST"])
 @aux_login_required
@@ -281,7 +329,7 @@ def search():
 @aux_login_required
 def save():
     eshot = request.get_json()
-    courses = [0, 0, 0, 0, 0, 0, 0, 0]
+    bookings = [0, 0, 0, 0, 0, 0, 0, 0]
     prices  = [0, 0, 0, 0, 0, 0, 0, 0]
     
     length = 8
@@ -289,26 +337,26 @@ def save():
         length = len(eshot["eshot_courses"])
         
     for i in range(length):
-        courses[i] = eshot["eshot_courses"][i]["course"]
+        bookings[i] = eshot["eshot_courses"][i]["id"]
         prices[i]  = eshot["eshot_courses"][i]["price"]
         
-    id = db.execute("INSERT INTO eshots (subject, course0, price0, course1, price1, course2, price2, course3, price3, course4, price4, course5, price5, course6, price6, course7, price7) VALUES (:subject, :course0, :price0, :course1, :price1, :course2, :price2, :course3, :price3, :course4, :price4, :course5, :price5, :course6, :price6, :course7, :price7)", 
+    id = db.execute("INSERT INTO eshots (subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7) VALUES (:subject, :booking0, :price0, :booking1, :price1, :booking2, :price2, :booking3, :price3, :booking4, :price4, :booking5, :price5, :booking6, :price6, :booking7, :price7)", 
                     subject = eshot["subject"],
-                    course0 = courses[0],
+                    booking0 = bookings[0],
                     price0  = prices[0],
-                    course1 = courses[1],
+                    booking1 = bookings[1],
                     price1  = prices[1],
-                    course2 = courses[2],
+                    booking2 = bookings[2],
                     price2  = prices[2],          #can you tell we pay for our database storage by row.
-                    course3 = courses[3],
+                    booking3 = bookings[3],
                     price3  = prices[3],
-                    course4 = courses[4],
+                    booking4 = bookings[4],
                     price4  = prices[4],
-                    course5 = courses[5],
+                    booking5 = bookings[5],
                     price5  = prices[5],
-                    course6 = courses[6],
+                    booking6 = bookings[6],
                     price6  = prices[6],
-                    course7 = courses[7],
+                    booking7 = bookings[7],
                     price7  = prices[7])
     
     return("ThumbsUp")
