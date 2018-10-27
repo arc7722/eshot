@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}
+    Eshots
+{% endblock %}
+
+{% block main %}
+<style>
+    tr:hover{
+        color: blue;
+    }
+</style>
+    <div class="container">
+        <h2>Eshots</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr style="color:black">
+                    <th style="width: 8%">Eshot ID</th>
+                    <th style="width: 18%">Date Created</th>
+                    <th>Subject</th>
+                    <th>Last Sent</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in eshots %}
+                    <tr style="cursor: pointer" onclick="clicked('{{ url_for('send', eshotid = row.id) }}')">
+                        <td>{{ row.id }}</td>
+                        <td>{{ row.daynum }} {{ row.month}} {{ row.year }}</td>
+                        <td>{{ row.subject }}</td>
+                        
+                        <td></td>
+                    </tr>
+                {% endfor %}
+            </tbody>    
+        </table>
+    </div>
+<script>
+    function clicked(url) {
+        window.location.href = url;
+    }
+</script>
+{% endblock %}

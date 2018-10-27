@@ -1,0 +1,306 @@
+{% extends "layout.html" %}
+{% block title %}
+    New Eshot
+{% endblock %}
+
+{% block main %}
+
+<div class="row">
+    <div class="col-xs-6" style="border-right-style: solid; border-width: 1px; padding-right: 20px">
+        <h2 style="text-align: center">New Eshot</h2>
+        <hr>
+        <input id="subject" class="form-control" type="text" placeholder="Subject Line"/>
+        <br>
+        <div id="eshot" class="courses">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-xs-9">
+                            <h3 class="panel-title">Panel title</h3>
+                        </div>
+                        <div class="col-xs-1" style="border-left-style: solid; border-width: 1px; border-color: black">
+                            <span style="color:black" class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                        </div>
+                        <div class="col-xs-1" style="border-right-style: solid; border-width: 1px; border-color: black">
+                            <span style="color:black" class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span>
+                        </div>
+                        <div class="col-xs-1">
+                            <span style="color:red" class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    Panel content
+                </div>
+                <ul class="list-group">
+                    <li class="list-group-item"><b>Wednesday 17th October - £145 +VAT  <a href="http://www.skillsgen.com/it?course=53">More Details...</a></b></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-xs-6">
+        <div class="input-group">
+            <input id="search_box" class="form-control" type="text" placeholder="Course to add..."/>
+            <span class="input-group-btn">
+                <button onclick="search_course()" class="btn btn-default" type="button">Search</button>
+            </span>
+        </div>
+        <br>
+        <div id="searched_courses" class="searched_courses"></div>
+    </div>
+</div>
+
+<script>
+    var eshot_courses = [];
+    var eshot_courses_count = 0;
+    var date_count = 0;    
+    
+    var course_to_add = 0;
+    function select_course(li, id) {
+        course_to_add = id;
+        
+        for(i = 0; i < date_count; i++) {
+            var element = "date" + i;
+            document.getElementById(element).style.backgroundColor = "white";
+        }
+            
+        element = "date" + li;        
+        document.getElementById(element).style.backgroundColor = "lightblue";
+        
+    }
+    
+    function add_course() {
+        if(course_to_add != 0 && document.getElementById('price_box').value != "") {
+            var course = {id: course_to_add, price: document.getElementById('price_box').value};
+            
+            eshot_courses[eshot_courses_count] = course;
+            eshot_courses_count++;      
+            
+            date_count = 0;
+            course_to_add = 0;
+            document.getElementById('searched_courses').innerHTML = "<br><p style='text-align: center'>Course added to Eshot</p>";
+            
+            populate_eshot();
+        }
+    }
+    
+    function move_up(eshot_course) {
+        if(eshot_course == 0) {
+            return;
+        }
+        var swapped_course = eshot_courses[eshot_course - 1];
+        eshot_courses[eshot_course - 1] = eshot_courses[eshot_course];
+        eshot_courses[eshot_course] = swapped_course;
+        
+        refresh_eshot();
+    }
+    
+    function move_down(eshot_course) {
+        if(eshot_course == (eshot_courses_count - 1)) {
+            return;
+        }
+        var swapped_course = eshot_courses[eshot_course + 1];
+        eshot_courses[eshot_course + 1] = eshot_courses[eshot_course];
+        eshot_courses[eshot_course] = swapped_course;
+        
+        refresh_eshot();
+    }
+    
+    function delete_course(eshot_course) {
+        console.log("delete");
+        eshot_courses.splice(eshot_course, 1);        
+        eshot_courses_count--;
+        
+        refresh_eshot();
+    }
+    
+    function refresh_eshot() {
+        var eshot_html = "";
+        
+        if(eshot_courses_count == 0) {
+            eshot_html += "<p>No dates added yet</p>";
+        }
+        for(i = 0; i < eshot_courses_count; i++) {
+            eshot_html += "<div class='panel panel-default'><div class='panel-heading'><div class='row'><div class='col-xs-9'><h3 class='panel-title'>";
+            eshot_html += eshot_courses[i].name;
+            eshot_html += "</h3></div><div onclick='move_up("
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1' style='border-left-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-up' aria-hidden='true'></span></div><div onclick='move_down(";
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1' style='border-right-style: solid; border-width: 1px; border-color: black'><span style='color:black' class='glyphicon glyphicon-arrow-down' aria-hidden='true'></span></div><div onclick='delete_course(";
+            eshot_html += i;
+            eshot_html += ")' class='col-xs-1'><span style='color:red' class='glyphicon glyphicon-remove' aria-hidden='true'></span></div></div></div><div class='panel-body'>";
+            eshot_html += eshot_courses[i].desc;
+            eshot_html += "</div><ul class='list-group'><li class='list-group-item'><b>";
+            eshot_html += eshot_courses[i].daynum + " " + eshot_courses[i].month + " - £" + eshot_courses[i].price + " +VAT<a href='http://www.skillsgen.com/";
+            
+            if(eshot_courses[i].type == 1) {
+                eshot_html += "it?course=";
+            }
+            else {
+                eshot_html += "manage-course?course=";
+            }
+            eshot_html += eshot_courses[i].type;
+            eshot_html += "'>   More Details...</a></b></li></ul></div>";
+        }
+        
+        eshot_html += "<div class'container' style='text-align: center'><button onclick='save_eshot()' type='button' class='btn btn-primary'>Save Eshot</button></div>";
+        document.getElementById('eshot').innerHTML = eshot_html;
+    }
+    
+    function populate_eshot() {
+        var queryurl = "{{url_for('search')}}";
+        if(eshot_courses_count == 0) {
+            return;
+        }
+        
+        var params = "count=" + eshot_courses_count;
+        params += "&subject=" + document.getElementById('subject').value;
+        for(i = 0; i < eshot_courses_count; i++) {
+            params += "&id"  + i + "=" + eshot_courses[i].id;
+            params += "&price" + i + "=" + eshot_courses[i].price;
+        }
+        
+        xmlhttp=new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function() {
+            if(xmlhttp.readyState==4 && xmlhttp.status==200) {
+                var postresults = JSON.parse(xmlhttp.responseText);
+                
+                var counter = 0;
+                for(var key in postresults) {
+                    if (!postresults.hasOwnProperty(key)) continue;
+                    var obj = postresults[key];
+                    
+                    eshot_courses[counter]['course'] = obj['course_id'];
+                    eshot_courses[counter]['type']   = obj['course_type'];
+                    eshot_courses[counter]['name']   = obj['course_name'];
+                    eshot_courses[counter]['desc']   = obj['course_desc'];
+                    eshot_courses[counter]['date']   = obj['booking_date'];
+                    eshot_courses[counter]['daynum'] = obj['daynum'];
+                    eshot_courses[counter]['month']  = obj['month'];
+                    eshot_courses[counter]['year']   = obj['year'];
+                    
+                    counter++;
+                }
+                refresh_eshot();
+              }
+        }
+        xmlhttp.open("POST", queryurl);
+        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlhttp.send(params);
+    }
+    
+    function search_course() {
+        course_to_add = 0;
+        date_count = 0;
+        var queryurl = "{{url_for('search')}}";
+        var term = document.getElementById('search_box').value;
+        if(term.length < 3) {
+            return;
+        }
+        
+        var params = "term=" + term;
+        xmlhttp=new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function() {
+            if(xmlhttp.readyState==4 && xmlhttp.status==200) {
+                document.getElementById('searched_courses').innerHTML = "";
+                var searched_courses_html = "";
+                var postresults = JSON.parse(xmlhttp.responseText);
+                
+                if(postresults.length == 0) {
+                    searched_courses_html = "<p>No matching courses found</p>";
+                    document.getElementById('searched_courses').innerHTML = searched_courses_html;
+                    
+                    return;
+                }
+                
+                searched_courses_html += "<ul class='list-group'>";
+                
+                for(var key in postresults) {
+                    if (!postresults.hasOwnProperty(key)) continue;
+                    var obj = postresults[key];
+                    
+                    searched_courses_html += "<li style='cursor:pointer' onclick='get_dates(";
+                    searched_courses_html += obj['id'] + ",\"" + obj['name'] + "\"";
+                    searched_courses_html += ")' class='list-group-item'>";
+                    searched_courses_html += obj['name'];
+                    searched_courses_html += "</li>";
+                }
+                
+                searched_courses_html += "</ul>";
+                document.getElementById('searched_courses').innerHTML = searched_courses_html;
+              }
+        }
+        xmlhttp.open("POST", queryurl);
+        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlhttp.send(params);
+    }
+    
+    function get_dates(course_id, course_name) {
+        var queryurl = "{{url_for('search')}}";
+        
+        var params = "course_id=" + course_id;
+        xmlhttp=new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function() {
+            if(xmlhttp.readyState==4 && xmlhttp.status==200) {
+                document.getElementById('searched_courses').innerHTML = "";
+                var course_dates_html = "";
+                var postresults = JSON.parse(xmlhttp.responseText);
+                
+                if(postresults.length == 0) {
+                    course_dates_html = "<p>No dates for that course found</p>";
+                    document.getElementById('searched_courses').innerHTML = course_dates_html;
+                    
+                    return;
+                }                
+                
+                course_dates_html += "<div style='cursor:pointer' class='panel panel-default'><div class='panel-heading'><div class='row'><div class='col-xs-8'><h3 class='panel-title'>";
+                course_dates_html += course_name;
+                course_dates_html += "</h3></div><div class='col-xs-4'><input id='price_box' class='form-control' type='text' placeholder='Price'/></div></div></div>";
+                course_dates_html += "<ul class='list-group'>";
+                
+                var counter = 0;
+                for(var key in postresults) {
+                    if (!postresults.hasOwnProperty(key)) continue;
+                    var obj = postresults[key];
+                    
+                    course_dates_html += "<li id='date";
+                    course_dates_html += counter;
+                    course_dates_html += "' onclick='select_course(";
+                    course_dates_html += counter + "," + obj['id'];
+                    course_dates_html += ")' class='list-group-item'>";
+                    course_dates_html += obj['date'];
+                    course_dates_html += "</li>";    
+                    
+                    counter++;
+                }
+                date_count = counter;
+                
+                course_dates_html += "</ul></div>";
+                course_dates_html += "<div class'container' style='text-align: center'><button onclick='add_course()' type='button' class='btn btn-primary'>Add date to Eshot</button></div>";
+                document.getElementById('searched_courses').innerHTML = course_dates_html;
+              }
+        }
+        xmlhttp.open("POST", queryurl);
+        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlhttp.send(params);
+    }
+    
+    function save_eshot() {
+        var queryurl = "{{url_for('save')}}";
+        if(eshot_courses_count == 0) {
+            return;
+        }
+        
+        xmlhttp=new XMLHttpRequest();
+        
+        var saved_eshot = {subject: document.getElementById('subject').value, eshot_courses: eshot_courses};
+        
+        var eshot_string = JSON.stringify(saved_eshot);
+        
+        xmlhttp.open("POST", queryurl);
+        xmlhttp.setRequestHeader("Content-Type", "application/json");
+        xmlhttp.send(eshot_string);
+    }
+</script>
+{% endblock %}

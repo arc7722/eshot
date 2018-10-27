@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+{% block title %}
+    New Eshot
+{% endblock %}
+
+{% block main %}
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-7" style="border-right-style: solid; border-width: 1px">
+                <h4 style="text-align:center">Recipient List</h4>
+                <hr>
+                <ul class="nav nav-tabs nav-justified">
+                    <li id="test_tab" onclick="test_clicked()" role="presentation"><a href="#">Test List</a></li>
+                    <li id="marketing_tab" onclick="marketing_clicked()" role="presentation"><a href="#">Marketing List</a></li>
+                </ul>
+                <div id="recipient_list"></div>
+            </div>
+            <div class="col-xs-5">
+                <h4 style="text-align:center">Preview</h4>
+                <hr>
+                {{ subject }}
+                {% for row in eshot %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">{{ row.course_name }}</h3>
+                        </div>
+                        <div class="panel-body">{{ row.course_desc }}</div>
+                        <ul class="list-group">
+                            <li class="list-group-item"><b>{{ row.booking_date}} - £{{ row.booking_price }} +VAT</b></li>
+                        </ul>
+                   </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <script>
+        function test_clicked() {
+            if(!document.getElementById("test_tab").classList.contains("active")) {
+                document.getElementById("test_tab").classList.add("active");
+                document.getElementById("marketing_tab").classList.remove("active");
+                populate_list("test");
+                
+                dont_send_list = [];
+            }
+        }
+        
+        function marketing_clicked() {
+            if(!document.getElementById("marketing_tab").classList.contains("active")) {
+                document.getElementById("marketing_tab").classList.add("active");
+                document.getElementById("test_tab").classList.remove("active");
+                populate_list("marketing");
+                
+                dont_send_list = [];
+            }
+        }
+        
+        var dont_send_list = [];        
+        function dont_send(id) {
+            var row_term = "row" + id;
+            var icon_term = "icon" + id;
+            
+            for(i = 0; i < dont_send_list.length; i++) {
+                if(dont_send_list[i] == id) {  
+                    document.getElementById(row_term).style.color = "black";
+                    document.getElementById(icon_term).style.color = "lightgreen";
+                    document.getElementById(icon_term).classList.remove("glyphicon-remove");
+                    document.getElementById(icon_term).classList.add("glyphicon-ok");
+                    
+                    dont_send_list.splice(id, 1);
+                    
+                    return;
+                }
+            }
+                        
+            document.getElementById(row_term).style.color = "lightgrey";
+            document.getElementById(icon_term).style.color = "red";
+            document.getElementById(icon_term).classList.remove("glyphicon-ok");
+            document.getElementById(icon_term).classList.add("glyphicon-remove");
+            
+            dont_send_list.push(id);
+        }
+        
+        function populate_list(list) {
+        var queryurl = "{{url_for('send')}}";
+        
+        var params = "list=" + list;
+        xmlhttp=new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function() {
+            if(xmlhttp.readyState==4 && xmlhttp.status==200) {
+                document.getElementById('recipient_list').innerHTML = "";
+                var recipient_list_html = "";
+                var postresults = JSON.parse(xmlhttp.responseText);
+                
+                if(postresults.length == 0) {
+                    course_dates_html = "<p>Didn't get a valid list from the server/p>";
+                    document.getElementById('searched_courses').innerHTML = course_dates_html;
+                    
+                    return;
+                }                
+                
+                recipient_list_html += "<table class='table table-striped'><thead><tr style='color:black'><th></th><th>Name</th><th>Email</th></tr></thead><tbody>";
+            
+                for(var key in postresults) {
+                    if (!postresults.hasOwnProperty(key)) continue;
+                    var obj = postresults[key];
+                    
+                    recipient_list_html += "<tr onclick='dont_send(" + obj['id']+ ")' id='row" + obj['id'] + "'><td>";
+                    recipient_list_html += "<span id='icon" + obj['id'] + "' style='color:lightgreen' class='glyphicon glyphicon-ok' aria-hidden='true'></span></td><td>"
+                    recipient_list_html += obj['contact'] + "</td><td>"
+                    recipient_list_html += obj['email'] + "</td>"
+                    recipient_list_html += "</tr>"
+                }                
+                recipient_list_html += "</tbody></table>"
+                
+                document.getElementById('recipient_list').innerHTML = recipient_list_html;
+              }
+            }
+            xmlhttp.open("POST", queryurl);
+            xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xmlhttp.send(params);
+        }
+    
+    test_clicked();
+    </script>
+{% endblock %}

@@ -226,7 +226,7 @@ def send():
             recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy@email.com"},
                               {"id": 1, "contact": "dummy contact", "email": "dummy@email.com"}]
         else:
-            recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1")
+            recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
         
         return jsonify(recipient_list)
             
@@ -261,7 +261,7 @@ def send():
             eshot.append(eshot_booking)            
             counter += 1
             
-        return render_template("send.html", eshot = eshot)
+        return render_template("send.html", eshot = eshot, subject = eshot_desc[0]['subject'])
     
     else:
         return "eshot id not found"
@@ -270,10 +270,49 @@ def send():
 @app.route("/eshots", methods=["GET", "POST"])
 @aux_login_required
 def eshots():
-    
     eshots = db.execute("SELECT id, to_char(EXTRACT(day FROM timestamp), '99') as daynum, to_char(timestamp, 'Month') AS month, to_char(timestamp, 'yyyy') AS year, subject FROM eshots")
     
     return render_template("eshots.html", eshots = eshots)
+    
+    
+@app.route("/email", methods=["GET"])
+@aux_login_required
+def email():
+    if request.args.get("eshotid") != None:
+        eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
+                              id = request.args.get("eshotid"))
+
+        eshot = []
+        counter = 0
+        while True:
+            booking_term = "booking" + str(counter)
+            price_term  = "price" + str(counter)
+            booking_id = eshot_desc[0][booking_term]
+            price = eshot_desc[0][price_term]
+
+            if booking_id == 0:
+                break
+
+            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+
+            eshot_booking = {"booking_id":    booking_id,
+                            "booking_date":  booking[0]['date'],
+                            "daynum":        booking[0]['daynum'],
+                            "month":         booking[0]['month'],
+                            "year":          booking[0]['year'],
+                            "course_id":     booking[0]['course'],
+                            "course_type":   booking[0]['type'],
+                            "course_name":   booking[0]['name'],
+                            "course_desc":   booking[0]['description'],                                
+                            "booking_price": price}
+
+            eshot.append(eshot_booking)            
+            counter += 1
+
+        return render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'])
+    else:
+        return("need eshotid")
+    
     
 @app.route("/search", methods=["POST"])
 @aux_login_required
