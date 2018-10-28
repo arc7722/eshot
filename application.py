@@ -123,6 +123,16 @@ def aux_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def obfuscate_id(user_id):
+    userid = user_id << 16
+    userid = userid ^ int(os.environ.get("ID_OBF_KEY"))
+    return userid
+
+def deobfuscate_id(obf_id):
+    userid = obf_id ^ int(os.environ.get("ID_OBF_KEY"))
+    userid = userid >> 16
+    return userid
+
 @celery.task
 def background_task(arg1, arg2):
     print("running background task")
@@ -245,9 +255,9 @@ def send():
             if booking_id == 0:
                 break
                 
-            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 150) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
                 
-            eshot_booking = {"booking_id":    booking_id,
+            eshot_booking = {"booking_id":   booking_id,
                             "booking_date":  booking[0]['date'],
                             "daynum":        booking[0]['daynum'],
                             "month":         booking[0]['month'],
@@ -293,9 +303,9 @@ def email():
             if booking_id == 0:
                 break
 
-            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
 
-            eshot_booking = {"booking_id":    booking_id,
+            eshot_booking = {"booking_id":   booking_id,
                             "booking_date":  booking[0]['date'],
                             "daynum":        booking[0]['daynum'],
                             "month":         booking[0]['month'],
@@ -328,7 +338,7 @@ def search():
                 booking_id = request.form.get(booking_id_term)                
                 price      = request.form.get(price_term)
                 
-                course = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, courses.description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+                course = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 150) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
                 
                 eshot_course = {"booking_id":    booking_id,
                                 "booking_date":  course[0]['date'],
@@ -399,6 +409,22 @@ def save():
                     price7  = prices[7])
     
     return("ThumbsUp")
+
+
+@app.route("/unsubscribe", methods=["GET"])
+def unsubscribe(): 
+    if request.args.get("identifier") != None:
+        try:
+            obf_id = int(request.args.get("identifier"))
+            user_id = deobfuscate_id(obf_id)            
+            db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
+            
+            return "You will no longer receive our marketing emails. Thankyou."
+        
+        except:
+            return "Invalid identifier"
+    else:
+        return "Invalid identifier"
     
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
