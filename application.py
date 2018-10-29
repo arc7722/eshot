@@ -133,10 +133,33 @@ def deobfuscate_id(obf_id):
     userid = userid >> 16
     return userid
 
-@celery.task
-def background_task(arg1, arg2):
-    print("running background task")
+@celery.task(bind=True)
+def send_eshot_task(self, eshot_params):
+    print(eshot_params)
+    eshot_id       = eshot_params["eshot_id"]
+    dont_send_list = eshot_params["dont_send_list"]
+    
+    recipient_list = list()
+    if eshot_params["recipient_list"] == "test":
+        recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy@email.com"},
+                          {"id": 1, "contact": "dummy contact", "email": "dummy@email.com"}]
+    else:
+        recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
 
+    total = len(recipient_list) - len(dont_send_list)
+    counter = 0    
+    for recipient in recipient_list:
+        if recipient["id"] not in dont_send_list:
+            print(recipient["id"])
+            counter += 1
+            self.update_state(state='PROGRESS',
+                              meta={'current': counter,
+                                    'total': total,
+                                    'status': 'ongoing'})
+    return {'current': counter,
+            'total': total,
+            'status': 'completed'
+           }
 
 @app.route("/login", methods=["GET", "POST"])
 def login(message=""):
@@ -271,7 +294,7 @@ def send():
             eshot.append(eshot_booking)            
             counter += 1
             
-        return render_template("send.html", eshot = eshot, subject = eshot_desc[0]['subject'])
+        return render_template("send.html", eshot_id = request.args.get("eshotid"), eshot = eshot, subject = eshot_desc[0]['subject'])
     
     else:
         return "eshot id not found"
@@ -410,6 +433,47 @@ def save():
     
     return("ThumbsUp")
 
+@app.route("/send_eshot", methods=["POST"])
+@aux_login_required
+def send_eshot():
+    eshot_params = request.get_json()
+    task_id = send_eshot_task.apply_async(args=[eshot_params])
+    
+    return str(task_id)
+
+
+@app.route('/send_progress', methods=["POST"])
+def send_progress():
+    task_id = request.form.get("task_id")
+    print(task_id)
+    task = send_eshot_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        # job did not start yet
+        response = {
+            'state': task.state,
+            'current': 0,
+            'total': 1,
+            'status': 'Job has not started yet...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'current': task.info.get('current', 0),
+            'total': task.info.get('total', 1),
+            'status': task.info.get('status', '')
+        }
+        if 'result' in task.info:
+            response['result'] = task.info['result']
+    else:
+        # something went wrong in the background job
+        response = {
+            'state': task.state,
+            'current': 1,
+            'total': 1,
+            'status': str(task.info),  # this is the exception raised
+        }
+        time.sleep(3)
+    return jsonify(response)
 
 @app.route("/unsubscribe", methods=["GET"])
 def unsubscribe(): 
