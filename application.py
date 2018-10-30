@@ -27,13 +27,11 @@ celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
 
 url = urlparse(os.environ["DATABASE_URL"])
-conn = psycopg2.connect(
- database=url.path[1:],
- user=url.username,
- password=url.password,
- host=url.hostname,
- port=url.port
-)
+conn = psycopg2.connect(database = url.path[1:],
+                        user     = url.username,
+                        password = url.password,
+                        host     = url.hostname,
+                        port     = url.port)
 
 class SQL(object):
     """Wrap SQLAlchemy to provide a simple SQL API."""
@@ -135,6 +133,7 @@ def deobfuscate_id(obf_id):
     userid = userid >> 16
     return userid
 
+    
 @celery.task(bind=True)
 def send_eshot_task(self, eshot_params):
     print(eshot_params)
@@ -151,12 +150,49 @@ def send_eshot_task(self, eshot_params):
     
     with app.app_context():
         
-        subject = "eshot"    
-        msg = Message(subject, sender = "training@skillsgen.com", recipients = ["sreinolds@gmail.com"])
-        msg.html = render_template("email.html", eshotid = eshot_id)
         
+        
+        eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
+                              id = eshot_id)
+
+        eshot = []
+        counter = 0
+        while True:
+            booking_term = "booking" + str(counter)
+            price_term  = "price" + str(counter)
+            booking_id = eshot_desc[0][booking_term]
+            price = eshot_desc[0][price_term]
+
+            if booking_id == 0:
+                break
+
+            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+
+            eshot_booking = {"booking_id":   booking_id,
+                            "booking_date":  booking[0]['date'],
+                            "daynum":        booking[0]['daynum'],
+                            "month":         booking[0]['month'],
+                            "year":          booking[0]['year'],
+                            "course_id":     booking[0]['course'],
+                            "course_type":   booking[0]['type'],
+                            "course_name":   booking[0]['name'],
+                            "course_desc":   booking[0]['description'],                                
+                            "booking_price": price}
+
+            eshot.append(eshot_booking)            
+            counter += 1
+        
+        
+        
+        
+        
+        msg = Message(subject    = "eshot", 
+                      sender     = "training@skillsgen.com", 
+                      recipients = ["sreinolds@gmail.com"])
+        msg.html = render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'])
+    
         mail.send(msg)
-        
+    
         
     total = len(recipient_list) - len(dont_send_list)
     counter = 0    
