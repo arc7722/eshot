@@ -385,7 +385,7 @@ def search():
         
         elif request.form.get("course_id"):
             courseid = request.form.get("course_id")
-            dates = db.execute("SELECT id, date FROM bookings WHERE course = :course_id AND to_date(date, 'YYYY-MM-DD') >= CURRENT_DATE ORDER BY date", courseid = courseid)
+            dates = db.execute("SELECT id, date FROM bookings WHERE course = :courseid AND to_date(date, 'YYYY-MM-DD') >= CURRENT_DATE ORDER BY date", courseid = courseid)
             
             return jsonify(dates)    
         
