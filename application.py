@@ -17,10 +17,11 @@ app = Flask(__name__)
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER")
 app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
 app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
-mail = Mail(app)
 
 app.config['CELERY_BROKER_URL'] = os.environ.get("REDIS_URL")
 app.config['CELERY_RESULT_BACKEND'] = os.environ.get("REDIS_URL")
+
+mail = Mail(app)
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
@@ -123,6 +124,7 @@ def aux_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 def obfuscate_id(user_id):
     userid = user_id << 16
     userid = userid ^ int(os.environ.get("ID_OBF_KEY"))
@@ -146,6 +148,16 @@ def send_eshot_task(self, eshot_params):
     else:
         recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
 
+    
+    with app.app_context():
+        
+        subject = "eshot"    
+        msg = Message(subject, sender = "training@skillsgen.com", recipients = ["sreinolds@gmail.com"])
+        msg.html = render_template("email.html", eshotid = eshot_id)
+        
+        mail.send(msg)
+        
+        
     total = len(recipient_list) - len(dont_send_list)
     counter = 0    
     for recipient in recipient_list:
@@ -159,6 +171,7 @@ def send_eshot_task(self, eshot_params):
     return {'current': counter,
             'total':   total,
             'status':  'completed'}
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login(message=""):
@@ -178,6 +191,7 @@ def login(message=""):
     else:
         return render_template("login.html")
 
+    
 @app.route("/logout")
 def logout():
     
@@ -437,6 +451,7 @@ def save():
 @aux_login_required
 def send_eshot():
     eshot_params = request.get_json()
+    
     task_id = send_eshot_task.apply_async(args=[eshot_params])
     
     return str(task_id)
