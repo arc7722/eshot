@@ -154,12 +154,11 @@ def send_eshot_task(self, eshot_params):
             counter += 1
             self.update_state(state='PROGRESS',
                               meta={'current': counter,
-                                    'total': total,
-                                    'status': 'ongoing'})
+                                    'total':   total,
+                                    'status':  'ongoing'})
     return {'current': counter,
-            'total': total,
-            'status': 'completed'
-           }
+            'total':   total,
+            'status':  'completed'}
 
 @app.route("/login", methods=["GET", "POST"])
 def login(message=""):
@@ -386,7 +385,7 @@ def search():
         
         elif request.form.get("course_id"):
             courseid = request.form.get("course_id")
-            dates = db.execute("SELECT id, date FROM bookings WHERE course = :courseid", courseid = courseid)
+            dates = db.execute("SELECT id, date FROM bookings WHERE course = :course_id AND to_date(date, 'YYYY-MM-DD') >= CURRENT_DATE ORDER BY date", courseid = courseid)
             
             return jsonify(dates)    
         
@@ -433,6 +432,7 @@ def save():
     
     return("ThumbsUp")
 
+
 @app.route("/send_eshot", methods=["POST"])
 @aux_login_required
 def send_eshot():
@@ -474,6 +474,7 @@ def send_progress():
         }
         time.sleep(3)
     return jsonify(response)
+
 
 @app.route("/unsubscribe", methods=["GET"])
 def unsubscribe(): 
