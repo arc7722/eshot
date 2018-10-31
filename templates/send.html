@@ -144,7 +144,7 @@
             if(xmlhttp.readyState==4 && xmlhttp.status==200) {                                
                 var task_id = xmlhttp.responseText;
                 
-                progress_update(task_id);                                
+                interval_id = setInterval(progress_update, 3000, task_id);  
                 
                 document.getElementById("eshot_params_div").style.opacity = 0.1;
                 document.getElementById("send_div").height = 200;
@@ -157,6 +157,8 @@
         xmlhttp.send(eshot_params_string);
     }    
     
+    var interval_id;
+    
     function progress_update(task_id) {
         var progress_url = "{{ url_for('send_progress') }}";
         var params = "task_id=" + task_id;
@@ -166,6 +168,10 @@
             if (xmlhttp.readyState==4 && xmlhttp.status==200) {
                 var postresults = JSON.parse(xmlhttp.responseText);
                 console.log(postresults);
+                
+                if(postresults.state == "SUCCESS" || postresults.state == "FAILURE") {
+                    clearInterval(interval_id);
+                }
             }
         }
         

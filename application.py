@@ -12,6 +12,8 @@ import sqlalchemy
 import os
 import psycopg2
 
+import time
+
 app = Flask(__name__)
 
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER")
@@ -133,72 +135,83 @@ def deobfuscate_id(obf_id):
     userid = userid >> 16
     return userid
 
-    
+def eshot_from_desc(eshot_desc):
+    eshot = []
+    counter = 0
+    while counter < 8:
+        booking_term = "booking" + str(counter)
+        price_term  = "price" + str(counter)
+        booking_id = eshot_desc[0][booking_term]
+        price = eshot_desc[0][price_term]
+
+        if booking_id == 0:
+            break
+
+        booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+
+        eshot_booking = {"booking_id":   booking_id,
+                        "booking_date":  booking[0]['date'],
+                        "daynum":        booking[0]['daynum'],
+                        "month":         booking[0]['month'],
+                        "year":          booking[0]['year'],
+                        "course_id":     booking[0]['course'],
+                        "course_type":   booking[0]['type'],
+                        "course_name":   booking[0]['name'],
+                        "course_desc":   booking[0]['description'],                                
+                        "booking_price": price}
+
+        eshot.append(eshot_booking)            
+        counter += 1
+        
+    return eshot    
+
+
 @celery.task(bind=True)
-def send_eshot_task(self, eshot_params):
+def send_eshot_task(self, eshot_params, unsubscribe_url):
     print(eshot_params)
     eshot_id       = eshot_params["eshot_id"]
     dont_send_list = eshot_params["dont_send_list"]
     
     recipient_list = list()
     if eshot_params["recipient_list"] == "test":
-        recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy@email.com"},
-                          {"id": 1, "contact": "dummy contact", "email": "dummy@email.com"}]
+        recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy0@email.com"},
+                          {"id": 1, "contact": "dummy contact", "email": "dummy1@email.com"},
+                          {"id": 2, "contact": "dummy contact", "email": "dummy2@email.com"},
+                          {"id": 3, "contact": "dummy contact", "email": "dummy3@email.com"},
+                          {"id": 4, "contact": "dummy contact", "email": "dummy4@email.com"},
+                          {"id": 5, "contact": "dummy contact", "email": "dummy5@email.com"},
+                          {"id": 6, "contact": "dummy contact", "email": "dummy6@email.com"},
+                          {"id": 7, "contact": "dummy contact", "email": "dummy7@email.com"},
+                          {"id": 8, "contact": "dummy contact", "email": "dummy8@email.com"},]
     else:
         recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
-
     
-    with app.app_context():
-        
-        
-        
-        eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
-                              id = eshot_id)
+    #with app.app_context():
+    eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
+                          id = eshot_id)
 
-        eshot = []
-        counter = 0
-        while True:
-            booking_term = "booking" + str(counter)
-            price_term  = "price" + str(counter)
-            booking_id = eshot_desc[0][booking_term]
-            price = eshot_desc[0][price_term]
-
-            if booking_id == 0:
-                break
-
-            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
-
-            eshot_booking = {"booking_id":   booking_id,
-                            "booking_date":  booking[0]['date'],
-                            "daynum":        booking[0]['daynum'],
-                            "month":         booking[0]['month'],
-                            "year":          booking[0]['year'],
-                            "course_id":     booking[0]['course'],
-                            "course_type":   booking[0]['type'],
-                            "course_name":   booking[0]['name'],
-                            "course_desc":   booking[0]['description'],                                
-                            "booking_price": price}
-
-            eshot.append(eshot_booking)            
-            counter += 1
-        
-        
-        
-        
-        
-        msg = Message(subject    = "eshot", 
-                      sender     = "training@skillsgen.com", 
-                      recipients = ["sreinolds@gmail.com"])
-        msg.html = render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'])
-    
-        mail.send(msg)
-    
+    eshot = eshot_from_desc(eshot_desc) 
         
     total = len(recipient_list) - len(dont_send_list)
     counter = 0    
     for recipient in recipient_list:
         if recipient["id"] not in dont_send_list:
             print(recipient["id"])
+            print(recipient["email"])
+            
+            obf_id = obfuscate_id(recipient["id"])
+            
+            unsubscribe_url += str(obf_id)
+            
+            with app.app_context():
+                msg = Message(subject    = "eshot", 
+                              sender     = "dummy@email.com", 
+                              recipients = ["dummy@email.com"])
+                msg.html = render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'], unsubscribe_url = unsubscribe_url)
+                
+                time.sleep(5)
+            #    mail.send(msg)
+            
             counter += 1
             self.update_state(state='PROGRESS',
                               meta={'current': counter,
@@ -316,32 +329,7 @@ def send():
         eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
                           id = request.args.get("eshotid"))
         
-        eshot = []
-        counter = 0
-        while True:
-            booking_term = "booking" + str(counter)
-            price_term  = "price" + str(counter)
-            booking_id = eshot_desc[0][booking_term]
-            price = eshot_desc[0][price_term]
-                
-            if booking_id == 0:
-                break
-                
-            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 150) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
-                
-            eshot_booking = {"booking_id":   booking_id,
-                            "booking_date":  booking[0]['date'],
-                            "daynum":        booking[0]['daynum'],
-                            "month":         booking[0]['month'],
-                            "year":          booking[0]['year'],
-                            "course_id":     booking[0]['course'],
-                            "course_type":   booking[0]['type'],
-                            "course_name":   booking[0]['name'],
-                            "course_desc":   booking[0]['description'],                                
-                            "booking_price": price}
-            
-            eshot.append(eshot_booking)            
-            counter += 1
+        eshot = eshot_from_desc(eshot_desc)
             
         return render_template("send.html", eshot_id = request.args.get("eshotid"), eshot = eshot, subject = eshot_desc[0]['subject'])
     
@@ -364,32 +352,7 @@ def email():
         eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
                               id = request.args.get("eshotid"))
 
-        eshot = []
-        counter = 0
-        while True:
-            booking_term = "booking" + str(counter)
-            price_term  = "price" + str(counter)
-            booking_id = eshot_desc[0][booking_term]
-            price = eshot_desc[0][price_term]
-
-            if booking_id == 0:
-                break
-
-            booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
-
-            eshot_booking = {"booking_id":   booking_id,
-                            "booking_date":  booking[0]['date'],
-                            "daynum":        booking[0]['daynum'],
-                            "month":         booking[0]['month'],
-                            "year":          booking[0]['year'],
-                            "course_id":     booking[0]['course'],
-                            "course_type":   booking[0]['type'],
-                            "course_name":   booking[0]['name'],
-                            "course_desc":   booking[0]['description'],                                
-                            "booking_price": price}
-
-            eshot.append(eshot_booking)            
-            counter += 1
+        eshot = eshot_from_desc(eshot_desc)
 
         return render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'])
     else:
@@ -487,8 +450,9 @@ def save():
 @aux_login_required
 def send_eshot():
     eshot_params = request.get_json()
+    unsubscribe_url = url_for('unsubscribe', identifier = "")
     
-    task_id = send_eshot_task.apply_async(args=[eshot_params])
+    task_id = send_eshot_task.apply_async(args=[eshot_params, unsubscribe_url])
     
     return str(task_id)
 
@@ -533,8 +497,8 @@ def unsubscribe():
         try:
             obf_id = int(request.args.get("identifier"))
             user_id = deobfuscate_id(obf_id)            
-            db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
-            
+            #db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
+            print(user_id)
             return "You will no longer receive our marketing emails. Thankyou."
         
         except:
