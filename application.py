@@ -174,19 +174,10 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
     
     recipient_list = list()
     if eshot_params["recipient_list"] == "test":
-        recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy0@email.com"},
-                          {"id": 1, "contact": "dummy contact", "email": "dummy1@email.com"},
-                          {"id": 2, "contact": "dummy contact", "email": "dummy2@email.com"},
-                          {"id": 3, "contact": "dummy contact", "email": "dummy3@email.com"},
-                          {"id": 4, "contact": "dummy contact", "email": "dummy4@email.com"},
-                          {"id": 5, "contact": "dummy contact", "email": "dummy5@email.com"},
-                          {"id": 6, "contact": "dummy contact", "email": "dummy6@email.com"},
-                          {"id": 7, "contact": "dummy contact", "email": "dummy7@email.com"},
-                          {"id": 8, "contact": "dummy contact", "email": "dummy8@email.com"},]
+        recipient_list = db.execute("SELECT id, contact, email FROM marketing_test WHERE consent = 1 ORDER BY id")
     else:
         recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
     
-    #with app.app_context():
     eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
                           id = eshot_id)
 
@@ -199,24 +190,35 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
             print(recipient["id"])
             print(recipient["email"])
             
-            obf_id = obfuscate_id(recipient["id"])
+            obf_id = obfuscate_id(recipient["id"])            
+            recipient_unsubscribe_url = unsubscribe_url + str(obf_id)
             
-            unsubscribe_url += str(obf_id)
-            
-            with app.app_context():
-                msg = Message(subject    = "eshot", 
-                              sender     = "dummy@email.com", 
-                              recipients = ["dummy@email.com"])
-                msg.html = render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'], unsubscribe_url = unsubscribe_url)
+            if eshot_params["recipient_list"] == "test":
+                recipient_unsubscribe_url = "#"
+            else:
+                obf_id = obfuscate_id(recipient["id"])            
+                recipient_unsubscribe_url = unsubscribe_url + str(obf_id)
                 
-                time.sleep(5)
-            #    mail.send(msg)
-            
             counter += 1
             self.update_state(state='PROGRESS',
-                              meta={'current': counter,
-                                    'total':   total,
-                                    'status':  'ongoing'})
+                              meta={'current':   counter,
+                                    'total':     total,
+                                    'recipient': recipient["email"],
+                                    'status':    'ongoing'})    
+                
+            with app.app_context():
+                msg = Message(subject    = "TESTING" #eshot_desc[0]["subject"], 
+                              sender     = "dummy@email.com", 
+                              recipients = [recipient["email"]])
+                msg.html = render_template("email.html", 
+                                           eshot = eshot, 
+                                           subject = eshot_desc[0]['subject'], 
+                                           unsubscribe_url = recipient_unsubscribe_url)
+                
+                #time.sleep(5)
+                mail.send(msg)
+            
+            
     return {'current': counter,
             'total':   total,
             'status':  'completed'}
@@ -318,8 +320,7 @@ def new_eshot():
 def send():
     if request.method == "POST":
         if request.form.get("list") == "test":
-            recipient_list = [{"id": 0, "contact": "dummy contact", "email": "dummy@email.com"},
-                              {"id": 1, "contact": "dummy contact", "email": "dummy@email.com"}]
+            recipient_list = db.execute("SELECT id, contact, email FROM marketing_test WHERE consent = 1 ORDER BY id")
         else:
             recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
         
@@ -463,19 +464,19 @@ def send_progress():
     print(task_id)
     task = send_eshot_task.AsyncResult(task_id)
     if task.state == 'PENDING':
-        # job did not start yet
         response = {
             'state': task.state,
             'current': 0,
             'total': 1,
-            'status': 'Job has not started yet...'
+            'status': 'Eshot has not started yet...'
         }
     elif task.state != 'FAILURE':
         response = {
             'state': task.state,
             'current': task.info.get('current', 0),
             'total': task.info.get('total', 1),
-            'status': task.info.get('status', '')
+            'status': task.info.get('status', ''),
+            'recipient': task.info.get('recipient', '')
         }
         if 'result' in task.info:
             response['result'] = task.info['result']

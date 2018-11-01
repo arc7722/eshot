@@ -6,8 +6,10 @@
 {% block main %}
     <div class="container">
         <div id="send_div" class="row" style="padding-bottom: 20px; border-bottom-style: solid; border-width: 1px">
-            <div class="col-xs-10">
-                
+            <div class="col-xs-6">
+            </div>
+            <div class="col-xs-4">
+                <textarea id="eshot_status" class="form-control" readonly rows="5" style="resize: none"></textarea>
             </div>
             <div class="col-xs-2" style="text-align: center">
                 <p><a href="{{ url_for('email', eshotid = eshot_id )}}">Preview Eshot</a></p>
@@ -47,8 +49,7 @@
             if(!document.getElementById("test_tab").classList.contains("active")) {
                 document.getElementById("test_tab").classList.add("active");
                 document.getElementById("marketing_tab").classList.remove("active");
-                populate_list("test");
-                
+                populate_list("test");                
                 dont_send_list = [];
             }
         }
@@ -57,8 +58,7 @@
             if(!document.getElementById("marketing_tab").classList.contains("active")) {
                 document.getElementById("marketing_tab").classList.add("active");
                 document.getElementById("test_tab").classList.remove("active");
-                populate_list("marketing");
-                
+                populate_list("marketing");                
                 dont_send_list = [];
             }
         }
@@ -73,8 +73,7 @@
                     document.getElementById(row_term).style.color = "black";
                     document.getElementById(icon_term).style.color = "lightgreen";
                     document.getElementById(icon_term).classList.remove("glyphicon-remove");
-                    document.getElementById(icon_term).classList.add("glyphicon-ok");
-                    
+                    document.getElementById(icon_term).classList.add("glyphicon-ok");                    
                     dont_send_list.splice(id, 1);
                     
                     return;
@@ -90,96 +89,117 @@
         }
         
         function populate_list(list) {
-        var queryurl = "{{url_for('send')}}";
-        
-        var params = "list=" + list;
-        xmlhttp=new XMLHttpRequest();
-        xmlhttp.onreadystatechange=function() {
-            if(xmlhttp.readyState==4 && xmlhttp.status==200) {
-                document.getElementById('recipient_list').innerHTML = "";
-                var recipient_list_html = "";
-                var postresults = JSON.parse(xmlhttp.responseText);
-                
-                if(postresults.length == 0) {
-                    course_dates_html = "<p>Didn't get a valid list from the server/p>";
-                    document.getElementById('searched_courses').innerHTML = course_dates_html;
-                    
-                    return;
-                }                
-                
-                recipient_list_html += "<table class='table table-striped'><thead><tr style='color:black'><th></th><th>Name</th><th>Email</th></tr></thead><tbody>";
-            
-                for(var key in postresults) {
-                    if (!postresults.hasOwnProperty(key)) continue;
-                    var obj = postresults[key];
-                    
-                    recipient_list_html += "<tr onclick='dont_send(" + obj['id']+ ")' id='row" + obj['id'] + "'><td>";
-                    recipient_list_html += "<span id='icon" + obj['id'] + "' style='color:lightgreen' class='glyphicon glyphicon-ok' aria-hidden='true'></span></td><td>"
-                    recipient_list_html += obj['contact'] + "</td><td>"
-                    recipient_list_html += obj['email'] + "</td>"
-                    recipient_list_html += "</tr>"
-                }                
-                recipient_list_html += "</tbody></table>"
-                
-                document.getElementById('recipient_list').innerHTML = recipient_list_html;
-              }
+            var queryurl = "{{url_for('send')}}";
+
+            var params = "list=" + list;
+            xmlhttp=new XMLHttpRequest();
+            xmlhttp.onreadystatechange=function() {
+                if(xmlhttp.readyState==4 && xmlhttp.status==200) {
+                    document.getElementById('recipient_list').innerHTML = "";
+                    var recipient_list_html = "";
+                    var postresults = JSON.parse(xmlhttp.responseText);
+
+                    if(postresults.length == 0) {
+                        course_dates_html = "<p>Didn't get a valid list from the server/p>";
+                        document.getElementById('searched_courses').innerHTML = course_dates_html;
+
+                        return;
+                    }                
+
+                    recipient_list_html += "<table class='table table-striped'><thead><tr style='color:black'><th></th><th>Name</th><th>Email</th></tr></thead><tbody>";
+
+                    for(var key in postresults) {
+                        if (!postresults.hasOwnProperty(key)) continue;
+                        var obj = postresults[key];
+
+                        recipient_list_html += "<tr onclick='dont_send(" + obj['id']+ ")' id='row" + obj['id'] + "'><td>";
+                        recipient_list_html += "<span id='icon" + obj['id'] + "' style='color:lightgreen' class='glyphicon glyphicon-ok' aria-hidden='true'></span></td><td>"
+                        recipient_list_html += obj['contact'] + "</td><td>"
+                        recipient_list_html += obj['email'] + "</td>"
+                        recipient_list_html += "</tr>"
+                    }                
+                    recipient_list_html += "</tbody></table>"
+
+                    document.getElementById('recipient_list').innerHTML = recipient_list_html;
+                }
             }
             xmlhttp.open("POST", queryurl);
             xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
             xmlhttp.send(params);
         }
     
-    function send_eshot() {
-        var queryurl = "{{url_for('send_eshot')}}";
-        var recipient_list = "";
-        if(document.getElementById("test_tab").classList.contains("active")) {
-            recipient_list = "test";
-        } else {
-            recipient_list = "marketing";
-        }
-        var eshot_params = {eshot_id: {{ eshot_id }}, recipient_list: recipient_list, dont_send_list: dont_send_list};
-        
-        xmlhttp=new XMLHttpRequest();
-        xmlhttp.onreadystatechange=function() {
-            if(xmlhttp.readyState==4 && xmlhttp.status==200) {                                
-                var task_id = xmlhttp.responseText;
-                
-                interval_id = setInterval(progress_update, 3000, task_id);  
-                
-                document.getElementById("eshot_params_div").style.opacity = 0.1;
-                document.getElementById("send_div").height = 200;
+        function send_eshot() {
+            document.getElementById("send_button").disabled = true;
+            var queryurl = "{{url_for('send_eshot')}}";
+            var recipient_list = "";
+            
+            if(document.getElementById("test_tab").classList.contains("active")) {
+                recipient_list = "test";
+            } else {
+                recipient_list = "marketing";
             }
-        }
-        var eshot_params_string = JSON.stringify(eshot_params);
-        
-        xmlhttp.open("POST", queryurl);
-        xmlhttp.setRequestHeader("Content-Type", "application/json");
-        xmlhttp.send(eshot_params_string);
-    }    
-    
-    var interval_id;
-    
-    function progress_update(task_id) {
-        var progress_url = "{{ url_for('send_progress') }}";
-        var params = "task_id=" + task_id;
-        
-        xmlhttp=new XMLHttpRequest();
-        xmlhttp.onreadystatechange=function() {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-                var postresults = JSON.parse(xmlhttp.responseText);
-                console.log(postresults);
-                
-                if(postresults.state == "SUCCESS" || postresults.state == "FAILURE") {
-                    clearInterval(interval_id);
+            var eshot_params = {eshot_id: {{ eshot_id }}, recipient_list: recipient_list, dont_send_list: dont_send_list};
+
+            xmlhttp=new XMLHttpRequest();
+            xmlhttp.onreadystatechange=function() {
+                if(xmlhttp.readyState==4 && xmlhttp.status==200) {                                
+                    var task_id = xmlhttp.responseText;
+
+                    interval_id = setInterval(progress_update, 1000, task_id);  
+
+                    document.getElementById("eshot_params_div").style.opacity = 0.1;
+                    document.getElementById("send_div").height = 200;
                 }
             }
+            var eshot_params_string = JSON.stringify(eshot_params);
+
+            xmlhttp.open("POST", queryurl);
+            xmlhttp.setRequestHeader("Content-Type", "application/json");
+            xmlhttp.send(eshot_params_string);
+        }    
+
+        var interval_id;
+        var current_step = -1;
+        function progress_update(task_id) {
+            var progress_url = "{{ url_for('send_progress') }}";
+            var params = "task_id=" + task_id;
+
+            xmlhttp=new XMLHttpRequest();
+            xmlhttp.onreadystatechange=function() {
+                if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+                    var postresults = JSON.parse(xmlhttp.responseText);
+                    
+                    switch(postresults.state) {
+                        case "PENDING":
+                            document.getElementById("eshot_status").textContent += "Preparing to send...\n";
+                            break;
+                        case "PROGRESS":
+                            if(postresults["current"] != current_step) {
+                                document.getElementById("eshot_status").textContent += "Sending " + postresults["current"] + "/" + postresults["total"];
+                                document.getElementById("eshot_status").textContent += " - " + postresults.recipient + "\n";
+                                current_step = postresults["current"];
+                            } 
+                            break;
+                        case "SUCCESS":
+                            document.getElementById("eshot_status").textContent += "Finished"
+                            clearInterval(interval_id);
+                            current_step = -1;
+                            break;
+                        case "FAILURE":
+                            document.getElementById("eshot_status").textContent += "FAILED";
+                            clearInterval(interval_id);
+                            current_step = -1;
+                    }
+                    
+                    document.getElementById("eshot_status").scrollTop = 99999;
+                    console.log(postresults);
+                }
+            }
+            xmlhttp.open("POST", progress_url);
+            xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xmlhttp.send(params);
         }
-        
-        xmlhttp.open("POST", progress_url);
-        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xmlhttp.send(params);
-    }
-        
-    test_clicked();
+
+        test_clicked();
     </script>
 {% endblock %}
