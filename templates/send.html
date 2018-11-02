@@ -5,17 +5,6 @@
 
 {% block main %}
     <div class="container">
-        <div id="send_div" class="row" style="padding-bottom: 20px; border-bottom-style: solid; border-width: 1px">
-            <div class="col-xs-6">
-            </div>
-            <div class="col-xs-4">
-                <textarea id="eshot_status" class="form-control" readonly rows="5" style="resize: none"></textarea>
-            </div>
-            <div class="col-xs-2" style="text-align: center">
-                <p><a href="{{ url_for('email', eshotid = eshot_id )}}">Preview Eshot</a></p>
-                <button id="send_button" class="btn btn-primary" onclick="send_eshot()">Send Eshot</button>                
-            </div>
-        </div>
         <div id="eshot_params_div" class="row">
             <div class="col-xs-7" style="border-right-style: solid; border-width: 1px">
                 <h4 style="text-align:center">Recipient List</h4>
@@ -27,20 +16,28 @@
                 <div id="recipient_list"></div>
             </div>
             <div class="col-xs-5">
-                <h4 style="text-align:center">Preview</h4>
-                <hr>
-                <p style="text-align: center; margin-bottom: 20px">{{ subject }}</p>                
-                {% for row in eshot %}
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">{{ row.course_name }}</h3>
+                <div id="send_div" class="row" style="text-align: center">                                        
+                    <button id="send_button" class="btn btn-success" onclick="send_eshot()">Send Eshot</button>
+                    <hr>
+                </div>
+                <div id="preview_div">
+                    <div style="text-align:center">
+                        <h4><u>Preview</u></h4>
+                        <a href="{{ url_for('email', eshotid = eshot_id )}}">Full Preview</a>
+                    </div> 
+                    <p style="text-align: center; margin-top: 20px; margin-bottom: 20px">{{ subject }}</p>                
+                    {% for row in eshot %}
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">{{ row.course_name }}</h3>
+                            </div>
+                            <div class="panel-body">{{ row.course_desc }}...</div>
+                            <ul class="list-group">
+                                <li class="list-group-item"><b>{{ row.booking_date}} - £{{ row.booking_price }} +VAT</b></li>
+                            </ul>
                         </div>
-                        <div class="panel-body">{{ row.course_desc }}...</div>
-                        <ul class="list-group">
-                            <li class="list-group-item"><b>{{ row.booking_date}} - £{{ row.booking_price }} +VAT</b></li>
-                        </ul>
-                   </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -129,7 +126,9 @@
         }
     
         function send_eshot() {
+            document.getElementById("preview_div").innerHTML = "<textarea id='eshot_status' class='form-control' readonly rows='5' style='resize: none'></textarea>";
             document.getElementById("send_button").disabled = true;
+            document.getElementById("send_button").textContent = "sending..."
             var queryurl = "{{url_for('send_eshot')}}";
             var recipient_list = "";
             
@@ -144,11 +143,7 @@
             xmlhttp.onreadystatechange=function() {
                 if(xmlhttp.readyState==4 && xmlhttp.status==200) {                                
                     var task_id = xmlhttp.responseText;
-
                     interval_id = setInterval(progress_update, 1000, task_id);  
-
-                    document.getElementById("eshot_params_div").style.opacity = 0.1;
-                    document.getElementById("send_div").height = 200;
                 }
             }
             var eshot_params_string = JSON.stringify(eshot_params);
