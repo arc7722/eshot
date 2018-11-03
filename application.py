@@ -176,7 +176,7 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
     if eshot_params["recipient_list"] == "test":
         recipient_list = db.execute("SELECT id, contact, email FROM marketing_test WHERE consent = 1 ORDER BY id")
     else:
-        recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
+        recipient_list = [] #db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
     
     eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
                           id = eshot_id)
@@ -207,7 +207,7 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
                                     'status':    'ongoing'})    
                 
             with app.app_context():
-                msg = Message(subject    = "TESTING", #eshot_desc[0]["subject"], 
+                msg = Message(subject    = eshot_desc[0]["subject"], 
                               sender     = "claire.scott@skillsgen.com",
                               reply_to   = "karen.reinolds@skillsgen.com",
                               recipients = [recipient["email"]])
@@ -217,7 +217,8 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
                                            unsubscribe_url = recipient_unsubscribe_url)
                 
                 #time.sleep(5)
-                mail.send(msg)
+                try:
+                    mail.send(msg)
             
     db.execute("UPDATE eshots SET lastsent = CURRENT_DATE WHERE id = :eshot_id", eshot_id = eshot_id)
     
@@ -290,10 +291,10 @@ def index(message=""):
         elif request.form.get("clientid") != None:
             db.execute("UPDATE marketing SET business = :business, contact = :contact, email = :email, phone = :phone, notes = :notes WHERE id = :clientid",
                       business = request.form.get("client"),
-                      contact = request.form.get("contact"),
-                      email = request.form.get("email"),
-                      phone = request.form.get("phone"),
-                      notes = request.form.get("notes"),
+                      contact  = request.form.get("contact"),
+                      email    = request.form.get("email"),
+                      phone    = request.form.get("phone"),
+                      notes    = request.form.get("notes"),
                       clientid = request.form.get("clientid"))
             
             return jsonify(request.form.get("clientid"))
@@ -301,11 +302,11 @@ def index(message=""):
         elif request.form.get("clientid") == None:
             newclientid = db.execute("INSERT INTO marketing (business, contact, email, phone, notes, userid)                                    VALUES(:business, :contact, :email, :phone, :notes, :userid)",
                                     business = request.form.get("client"),
-                                    contact = request.form.get("contact"),
-                                    email = request.form.get("email"),
-                                    phone = request.form.get("phone"),
-                                    notes = request.form.get("notes"),
-                                    userid = session["user_id"])
+                                    contact  = request.form.get("contact"),
+                                    email    = request.form.get("email"),
+                                    phone    = request.form.get("phone"),
+                                    notes    = request.form.get("notes"),
+                                    userid   = session["user_id"])
             
             return jsonify(newclientid)
     else:
@@ -417,7 +418,7 @@ def search():
 def save():
     eshot = request.get_json()
     bookings = [0, 0, 0, 0, 0, 0, 0, 0]
-    prices  = [0, 0, 0, 0, 0, 0, 0, 0]
+    prices   = [0, 0, 0, 0, 0, 0, 0, 0]
     
     length = 8
     if len(eshot["eshot_courses"]) < 8:
@@ -425,26 +426,26 @@ def save():
         
     for i in range(length):
         bookings[i] = eshot["eshot_courses"][i]["id"]
-        prices[i]  = eshot["eshot_courses"][i]["price"]
+        prices[i]   = eshot["eshot_courses"][i]["price"]
         
     id = db.execute("INSERT INTO eshots (subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7) VALUES (:subject, :booking0, :price0, :booking1, :price1, :booking2, :price2, :booking3, :price3, :booking4, :price4, :booking5, :price5, :booking6, :price6, :booking7, :price7)", 
-                    subject = eshot["subject"],
+                    subject  = eshot["subject"],
                     booking0 = bookings[0],
-                    price0  = prices[0],
+                    price0   = prices[0],
                     booking1 = bookings[1],
-                    price1  = prices[1],
+                    price1   = prices[1],
                     booking2 = bookings[2],
-                    price2  = prices[2],          #can you tell we pay for our database storage by row.
+                    price2   = prices[2],          #can you tell we pay for our database storage by row.
                     booking3 = bookings[3],
-                    price3  = prices[3],
+                    price3   = prices[3],
                     booking4 = bookings[4],
-                    price4  = prices[4],
+                    price4   = prices[4],
                     booking5 = bookings[5],
-                    price5  = prices[5],
+                    price5   = prices[5],
                     booking6 = bookings[6],
-                    price6  = prices[6],
+                    price6   = prices[6],
                     booking7 = bookings[7],
-                    price7  = prices[7])
+                    price7   = prices[7])
     
     return("ThumbsUp")
 
@@ -461,23 +462,24 @@ def send_eshot():
 
 
 @app.route('/send_progress', methods=["POST"])
+@aux_login_required
 def send_progress():
     task_id = request.form.get("task_id")
     print(task_id)
     task = send_eshot_task.AsyncResult(task_id)
     if task.state == 'PENDING':
         response = {
-            'state': task.state,
+            'state':   task.state,
             'current': 0,
-            'total': 1,
-            'status': 'Eshot has not started yet...'
+            'total':   1,
+            'status':  'Eshot has not started yet...'
         }
     elif task.state != 'FAILURE':
         response = {
-            'state': task.state,
-            'current': task.info.get('current', 0),
-            'total': task.info.get('total', 1),
-            'status': task.info.get('status', ''),
+            'state':     task.state,
+            'current':   task.info.get('current', 0),
+            'total':     task.info.get('total', 1),
+            'status':    task.info.get('status', ''),
             'recipient': task.info.get('recipient', '')
         }
         if 'result' in task.info:
@@ -485,10 +487,10 @@ def send_progress():
     else:
         # something went wrong in the background job
         response = {
-            'state': task.state,
+            'state':   task.state,
             'current': 1,
-            'total': 1,
-            'status': str(task.info),  # this is the exception raised
+            'total':   1,
+            'status':  str(task.info),  # this is the exception raised
         }
         time.sleep(3)
     return jsonify(response)
