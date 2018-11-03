@@ -217,9 +217,9 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
                                            unsubscribe_url = recipient_unsubscribe_url)
                 
                 #time.sleep(5)
-                try:
-                    mail.send(msg)
-            
+                mail.send(msg)
+              
+    
     db.execute("UPDATE eshots SET lastsent = CURRENT_DATE WHERE id = :eshot_id", eshot_id = eshot_id)
     
     return {'current': counter,
