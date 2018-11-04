@@ -125,6 +125,7 @@
             xmlhttp.send(params);
         }
     
+        var same_failure = false;
         function send_eshot() {
             document.getElementById("preview_div").innerHTML = "<textarea id='eshot_status' class='form-control' readonly rows='5' style='resize: none'></textarea>";
             document.getElementById("send_button").disabled = true;
@@ -163,19 +164,25 @@
             xmlhttp.onreadystatechange=function() {
                 if (xmlhttp.readyState==4 && xmlhttp.status==200) {
                     var postresults = JSON.parse(xmlhttp.responseText);
-                    
+                                        
                     switch(postresults.state) {
                         case "PENDING":
                             document.getElementById("eshot_status").textContent += "Preparing to send...\n";
                             break;
                         case "PROGRESS":
                             if(postresults["current"] != current_step) {
+                                same_failure = false;
                                 document.getElementById("eshot_status").textContent += "Sending " + postresults["current"] + "/" + postresults["total"];
                                 document.getElementById("eshot_status").textContent += " - " + postresults.recipient + "\n";
                                 current_step = postresults["current"];
                             } 
+                            if(postresults["recipient"] == "FAILED" && !same_failure) {
+                                same_failure = true;
+                                document.getElementById("eshot_status").textContent += "The above email failed to send\n";
+                            }
                             break;
                         case "SUCCESS":
+                            same_failure = false;
                             document.getElementById("eshot_status").textContent += "Finished"
                             clearInterval(interval_id);
                             current_step = -1;

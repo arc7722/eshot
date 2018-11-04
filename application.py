@@ -176,7 +176,7 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
     if eshot_params["recipient_list"] == "test":
         recipient_list = db.execute("SELECT id, contact, email FROM marketing_test WHERE consent = 1 ORDER BY id")
     else:
-        recipient_list = [] #db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
+        recipient_list = db.execute("SELECT id, contact, email FROM marketing WHERE consent = 1 ORDER BY id")
     
     eshot_desc = db.execute("SELECT id, subject, booking0, price0, booking1, price1, booking2, price2, booking3, price3, booking4, price4, booking5, price5, booking6, price6, booking7, price7 FROM eshots WHERE id = :id",
                           id = eshot_id)
@@ -214,12 +214,18 @@ def send_eshot_task(self, eshot_params, unsubscribe_url):
                 msg.html = render_template("email.html", 
                                            eshot = eshot, 
                                            subject = eshot_desc[0]['subject'], 
-                                           unsubscribe_url = recipient_unsubscribe_url)
-                
-                #time.sleep(5)
-                mail.send(msg)
-              
-    
+                                           unsubscribe_url = recipient_unsubscribe_url)            
+                try:
+                    mail.send(msg)
+                except Exception as error:                    
+                    self.update_state(state='PROGRESS',
+                              meta={'current':   counter,
+                                    'total':     total,
+                                    'recipient': "FAILED",
+                                    'status':    'ongoing'}) 
+                    time.sleep(2)
+                    print(error)
+
     db.execute("UPDATE eshots SET lastsent = CURRENT_DATE WHERE id = :eshot_id", eshot_id = eshot_id)
     
     return {'current': counter,
