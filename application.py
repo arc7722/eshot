@@ -168,7 +168,6 @@ def eshot_from_desc(eshot_desc):
 
 @celery.task(bind=True)
 def send_eshot_task(self, eshot_params, unsubscribe_url):
-    print(eshot_params)
     eshot_id       = eshot_params["eshot_id"]
     dont_send_list = eshot_params["dont_send_list"]
     
@@ -519,4 +518,4 @@ def unsubscribe():
     
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port,debug=True)
+    app.run(host='0.0.0.0', port=port,debug=False)
