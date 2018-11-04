@@ -144,11 +144,11 @@ def eshot_from_desc(eshot_desc):
         booking_id = eshot_desc[0][booking_term]
         price = eshot_desc[0][price_term]
 
-        if booking_id == 0:
+        if booking_id == 0 or booking_id == '0':
             break
 
         booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
-
+        
         eshot_booking = {"booking_id":   booking_id,
                         "booking_date":  booking[0]['date'],
                         "daynum":        booking[0]['daynum'],
