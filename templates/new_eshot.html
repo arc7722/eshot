@@ -121,7 +121,7 @@
             eshot_html += "'>   More Details...</a></b></li></ul></div>";
         }
         
-        eshot_html += "<div class'container' style='text-align: center'><button onclick='save_eshot()' type='button' class='btn btn-primary'>Save Eshot</button></div>";
+        eshot_html += "<div class'container' style='text-align: center'><button id='save_button' onclick='save_eshot()' type='button' class='btn btn-primary'>Save Eshot</button></div>";
         document.getElementById('eshot').innerHTML = eshot_html;
     }
     
@@ -264,6 +264,7 @@
     }
     
     function save_eshot() {
+        document.getElementById("save_button").disabled = true;
         var queryurl = "{{url_for('save')}}";
         if(eshot_courses_count == 0) {
             return;

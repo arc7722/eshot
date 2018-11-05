@@ -507,8 +507,8 @@ def unsubscribe():
         try:
             obf_id = int(request.args.get("identifier"))
             user_id = deobfuscate_id(obf_id)            
-            #db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
-            print(user_id)
+            db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
+            
             return "You will no longer receive our marketing emails. Thankyou."
         
         except:

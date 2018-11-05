@@ -3,3 +3,4 @@
 .DS_Store
 run-redis.sh
 /redis-stable
+.env.sh
