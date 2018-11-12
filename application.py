@@ -362,8 +362,8 @@ def email():
                               id = request.args.get("eshotid"))
 
         eshot = eshot_from_desc(eshot_desc)
-        unsubscribe_url = "https://skillsgen-eshot.herokuapp.com" + url_for('unsubscribe', identifier = "") + "27332081"
-        print(unsubscribe_url)
+        unsubscribe_url = "#"
+        
         return render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'], unsubscribe_url = unsubscribe_url)
     else:
         return("need eshotid")
