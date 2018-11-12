@@ -362,8 +362,9 @@ def email():
                               id = request.args.get("eshotid"))
 
         eshot = eshot_from_desc(eshot_desc)
-
-        return render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'])
+        unsubscribe_url = "https://skillsgen-eshot.herokuapp.com" + url_for('unsubscribe', identifier = "") + "27332081"
+        print(unsubscribe_url)
+        return render_template("email.html", eshot = eshot, subject = eshot_desc[0]['subject'], unsubscribe_url = unsubscribe_url)
     else:
         return("need eshotid")
     
@@ -459,7 +460,7 @@ def save():
 @aux_login_required
 def send_eshot():
     eshot_params = request.get_json()
-    unsubscribe_url = url_for('unsubscribe', identifier = "")
+    unsubscribe_url = "https://skillsgen-eshot.herokuapp.com" + url_for('unsubscribe', identifier = "")
     
     task_id = send_eshot_task.apply_async(args=[eshot_params, unsubscribe_url])
     
