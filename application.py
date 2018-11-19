@@ -505,6 +505,13 @@ def send_progress():
 @app.route("/unsubscribe", methods=["GET"])
 def unsubscribe(): 
     if request.args.get("identifier") != None:
+        return render_template("unsubscribe.html", identifier = request.args.get("identifier"))
+    else:
+        return "Invalid Identifier"
+            
+@app.route("/confirm_unsubscribe", methods=["GET"])
+def confirm_unsubscribe(): 
+    if request.args.get("identifier") != None:
         try:
             obf_id = int(request.args.get("identifier"))
             user_id = deobfuscate_id(obf_id)            
