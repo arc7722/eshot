@@ -510,6 +510,11 @@ def unsubscribe():
             user_id = deobfuscate_id(obf_id)            
             db.execute("UPDATE marketing SET consent = 0 WHERE id = :user_id", user_id = user_id)
             
+            ip_addresses = request.environ['HTTP_X_FORWARDED_FOR']
+            db.execute("INSERT INTO unsubscribe_events (userid, ip) VALUES (:user_id, :ip)", 
+                       user_id = user_id,
+                       ip = ip_addresses)
+            
             return "You will no longer receive our marketing emails. Thankyou."
         
         except:
