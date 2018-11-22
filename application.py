@@ -349,7 +349,7 @@ def send():
 @app.route("/eshots", methods=["GET", "POST"])
 @aux_login_required
 def eshots():
-    eshots = db.execute("SELECT id, to_char(EXTRACT(day FROM timestamp), '99') as daynum, to_char(timestamp, 'Month') AS month, to_char(timestamp, 'yyyy') AS year, to_char(lastsent, 'dd-mm-yy') AS lastsent, subject FROM eshots")
+    eshots = db.execute("SELECT id, to_char(EXTRACT(day FROM timestamp), '99') as daynum, to_char(timestamp, 'Month') AS month, to_char(timestamp, 'yyyy') AS year, to_char(lastsent, 'dd-mm-yy') AS lastsent, subject FROM eshots ORDER BY timestamp DESC")
     
     return render_template("eshots.html", eshots = eshots)
     
