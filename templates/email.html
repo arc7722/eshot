@@ -87,7 +87,7 @@
                                             </tr>
                                             <tr>
                                                 <td style="font-family:'Open Sans', Arial, sans-serif; font-size:18px; line-height:22px; color:#000000; letter-spacing:2px; padding-bottom: 0px;" valign="top" align="center">
-                                                    <b>{{ row.daynum }} {{ row.month }} - £{{ row.booking_price }} +VAT</b>
+                                                    <b>{{ row.daynum }} {{ row.month }} - £{{ row.booking_price }} +VAT {% if row.course_duration|int > 1 %}Per Day{% endif %}</b>
                                                 </td>
                                             </tr>
                                             <tr>

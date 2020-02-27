@@ -148,18 +148,19 @@ def eshot_from_desc(eshot_desc):
         if booking_id == 0 or booking_id == '0':
             break
 
-        booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
+        booking = db.execute("SELECT bookings.date, bookings.course, courses.name, courses.duration, courses.type, LEFT(courses.description, 200) AS description, to_char(EXTRACT(day FROM CAST(bookings.date as DATE)), '99') as daynum, to_char(CAST(bookings.date as DATE), 'Month') AS month, to_char(CAST(bookings.date as DATE), 'yyyy') AS year FROM bookings INNER JOIN courses on bookings.course = courses.id WHERE bookings.id = :bookingid", bookingid = booking_id)
         
-        eshot_booking = {"booking_id":   booking_id,
-                        "booking_date":  booking[0]['date'],
-                        "daynum":        booking[0]['daynum'],
-                        "month":         booking[0]['month'],
-                        "year":          booking[0]['year'],
-                        "course_id":     booking[0]['course'],
-                        "course_type":   booking[0]['type'],
-                        "course_name":   booking[0]['name'],
-                        "course_desc":   booking[0]['description'],                                
-                        "booking_price": price}
+        eshot_booking = {"booking_id":     booking_id,
+                        "booking_date":    booking[0]['date'],
+                        "daynum":          booking[0]['daynum'],
+                        "month":           booking[0]['month'],
+                        "year":            booking[0]['year'],
+                        "course_id":       booking[0]['course'],
+                        "course_duration": booking[0]['duration'], 
+                        "course_type":     booking[0]['type'],
+                        "course_name":     booking[0]['name'],
+                        "course_desc":     booking[0]['description'],                                
+                        "booking_price":   price}
 
         eshot.append(eshot_booking)            
         counter += 1
